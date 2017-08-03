@@ -5,7 +5,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 import time
-import 
+import openpyxl
 
 geckodriver =  'D:\Users\\byrne\Downloads\geckodriver-v0.18.0-win64\geckodriver.exe'
 driver = webdriver.Firefox()
