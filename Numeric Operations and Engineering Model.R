@@ -1,11 +1,11 @@
 
-#velocity and trajectory
+##################velocity and trajectory of car##########################
 VelTraj = function(accelX, accely,initialspeed) 
 {
   v0(initialspeed)
   g = 9.81
   ## create a matrix of zeros the size of the vector for velocity and heading
-  matU = matrix(nrow = length(accelX))  ##POSSIBLE PROBLEM AS IT IS LENGTH +1 IN MATLAB
+  matU = matrix(nrow = length(accelX))
   matTheta = matrix(nrow = length(accelX))
   ## create a matrix of zeros the size of the vector for velocity variables
   x_vel = matrix(nrow = length(accelX))
@@ -41,3 +41,6 @@ VelTraj = function(accelX, accely,initialspeed)
   return(df)
   
 }
+
+##################   Momentum Model   ##########################
+
