@@ -8,7 +8,7 @@ colnames(test) = c("Signal", "Time","Force", "TSTNO","CURNO","SENATT","AXIS","AX
 
 
 #write.table(test, "test1.txt", sep="\t")
-test1 = test[test$TSTNO == 6,]
+test1 = test[test$TSTNO == 6832,]
 resh <- reshape(data = test1, timevar = "AXIS",
                 idvar = c("TSTNO","Time","VEHNO"),
                 drop = c("Signal","AXISD","CURNO", "SENATT"), 
@@ -18,4 +18,6 @@ summary(resh)
 unique(test1$AXIS)
 unique(test$TSTNO)
 #memory.limit(test)
+
+
 

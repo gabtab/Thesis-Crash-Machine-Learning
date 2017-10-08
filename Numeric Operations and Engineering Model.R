@@ -1,43 +1,43 @@
 
-#############Create impact time#################
+#velocity and trajectory
+VelTraj = function(accelX, accely,initialspeed) 
+{
+  v0(initialspeed)
+  g = 9.81
+  ## create a matrix of zeros the size of the vector for velocity and heading
+  matU = matrix(nrow = length(accelX))  ##POSSIBLE PROBLEM AS IT IS LENGTH +1 IN MATLAB
+  matTheta = matrix(nrow = length(accelX))
+  ## create a matrix of zeros the size of the vector for velocity variables
+  x_vel = matrix(nrow = length(accelX))
+  y_vel = matrix(nrow = length(accelX))
+  ## create a matrix of zeros the size of the vector for trajectory variables
+  x = matrix(nrow = length(accelX))
+  y = matrix(nrow = length(accelX))
+  
+  #1. intial conditions
+  matTheta[] = 0
+  matU [1] = v0(initialspeed)
+  x[] = 0
+  y[] = 0
+  #n = 1
+  #2.compute trajectory and velocity of vehicle
+  for (n in 1: length(accelX)){
+    delu = g * accely[n] * (Time[n+1]- Time[n])   #difference in velocity
+    deltheta = g * accelX[n] / matU[n]* (Time[n+1]- Time[n]) #differnce in displacement
+    matU[n+1] = matU[n] + delu  # next velocity derivative
+    matTheta[n+1] = matTheta[n] + deltheta  #next displacement derivative
+    #velocity at t = n+1
+    x_vel[n+1] = matU[n+1] * cos(matTheta[n+1])
+    y_vel[n+1] = matU[n+1] * sin(matTheta[n+1])
+    #trajectory at t = n+1
+    x[n+1] = x[n] + matU[n+1] * cos(matTheta[n+1]) * (Time[n+1]- Time[n]) 
+    y[n+1] = y[n] + matU[n+1] * sin(matTheta[n+1]) * (Time[n+1]- Time[n])
 
-#create a subset that will be of an individual test
-testdat = subset(resh, TSTNO == 6)
-#create a column that has the sum of the absolute value of the xyz data
-testdat$abssum = abs(testdat$Force.XG) + abs(testdat$Force.YG) +abs(testdat$Force.ZG)
-#get the row that absolute value of the xyz is at a maximum for the impact
-
-car1 = testdat[which(testdat$VEHNO == 1),]
-car2 = testdat[which(testdat$VEHNO == 2),]
-maxallforce1 = car1[which.max(car1$abssum),]
-maxallforce2 = car2[which.max(car2$abssum),]
-
-
-############velocity and trajectory of vehicle###################
-dt = 0.01
-##km/h to m/s
-v0 = function(v0) { v0 *1000 /3600 } 
-g = 9.81
-## create a matrix of zeros the size of the vector for velocity and heading
-matU = matrix(nrow = length(car1$Force.XG))  ##POSSIBLE PROBLEM AS IT IS LENGTH +1 IN MATLAB
-matTheta = matrix(nrow = length(car1$Force.XG))
-## create a matrix of zeros the size of the vector for velocity variables
-x_vel = matrix(nrow = length(car1$Force.XG))
-y_vel = matrix(nrow = length(car1$Force.XG))
-## create a matrix of zeros the size of the vector for trajectory variables
-x = matrix(nrow = length(car1$Force.XG))
-y = matrix(nrow = length(car1$Force.XG))
-
-#1. intial conditions
-matTheta[] = 0
-matU[1] = v0
-x[] = 0
-y[] = 0
-
-#2.compute trajectory and velocity of vehicle
-for (n in 1: length(car2$Force.XG)){
-  delu = g * (n) * dt
-  deltheta = g * car2$Force.XG[n] / matU[n]* dt
-  u(n+1) 
+  }
+  velocity = x_vel + y_vel
+  trajectory = x + y
+  df <- data.frame(velocity,trajectory)
+  colnames(df) <- c('vel', 'traj')
+  return(df)
   
 }
