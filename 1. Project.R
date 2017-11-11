@@ -3,143 +3,119 @@ library(dplyr)
 library(reshape2)
 library(data.table)
 library('RODBC')
+library('stringr')
+library('ggplot2')
+library('ggthemes')
+
+##################EXTRACT DATA FROM DATABASE#####################################################################
 
 dbhandle <- odbcDriverConnect('driver={SQL Server};server=LAPTOP-PAPDF3KG\\SQLEXPRESS;database=CrashData;trusted_connection=true')
-test <- sqlQuery(dbhandle, 'select * from dbo.Sensor_Output')
-colnames(test) = c("Signal", "Time","Force", "TSTNO","CURNO","SENATT","AXIS","AXISD", "VEHNO")
+sensorout <- sqlQuery(dbhandle, 'select * from dbo.Sensor_Output')
+tstset <- sqlQuery(dbhandle, 'select * from dbo.tst')
+vehdat <- sqlQuery(dbhandle, 'select * from dbo.veh')
+instdat <- sqlQuery(dbhandle, 'select * from dbo.instr')
+
+##################START DATACLEANING ###########################################################################
+#remove any tests with no rating
+vehdatclean = vehdat[(vehdat$` VDI` %in% regmatches(vehdat$` VDI`,regexpr("^[0-9]{1,2}[A-Za-z]{3,4}[0-9]{1,2}", vehdat$` VDI`))),]
+#remove cars that arent driving,have nas or are barrier information
+vehdatclean = vehdatclean[complete.cases(vehdatclean[ , 51]),]
+vehdatclean = vehdatclean[!(vehdatclean$` VEHSPD` == 0), ]
+vehdatclean = vehdatclean[!(vehdatclean$` MAKED` == 'NHTSA'),]
+##create a variable with the VDI converted to a number between 0 and 9 and remove 0 (as it is an odd result and had no report)
+vehdatclean$damrat = str_sub(vehdatclean$` VDI`,-1,-1)
+vehdatclean = vehdatclean[!vehdatclean$damrat == 0,]
+
+#####need to chart out the differences and determine what is high and low############
+#calculate means with t-test
+summary(as.factor(vehdatclean$damrat))
+
+summary(vehdatclean$damrat)
+spdmean = by(vehdatclean$` VEHSPD`,vehdatclean$damrat,t.test)
+spdmean <- matrix(c(unlist(spdmean[[1]][5:4]),unlist(spdmean[[2]][5:4]),unlist(spdmean[[3]][5:4]),unlist(spdmean[[4]][5:4]),
+                    unlist(spdmean[[5]][5:4]),unlist(spdmean[[6]][5:4]),unlist(spdmean[[7]][5:4])),nrow = 7, byrow = T)
+spdmean <- data.frame(cbind(spdmean, c('1','2','3','4','5','6','7+'))); colnames(spdmean)=c('mean','lcl','ucl','Rating')
+spdmean$mean = as.numeric(as.character(spdmean$mean));spdmean$lcl = as.numeric(as.character(spdmean$lcl))
+spdmean$ucl = as.numeric(as.character(spdmean$ucl)) 
+#graph the means
+ggplot(data = spdmean, aes(x = Rating, y = spdmean[,1]))+geom_errorbar(aes(ymin =lcl, ymax =ucl),width = .1) +
+  geom_line() + geom_point() + ylab("Average Speed")+ xlab('Rating') + labs(title = "Average Speed by Rating with CI 95%")+
+  theme_economist()+
+  geom_hline(aes(yintercept = 50),colour="steelblue", linetype="dashed", size = 1.5) +
+  geom_hline(aes(yintercept = 45),colour="red", linetype="dashed", size = 1.5)
+
+##because of the split in the data I will now categorise level 1-3 as low and 4-9 as high but due to other line i will do 2 levels
+vehdatclean$DamLevhigh[vehdatclean$damrat %in% c(1,2,3)] = "Low"
+vehdatclean$DamLevhigh[vehdatclean$damrat %in% c(4,5,6,7,8,9)] = "High"
+vehdatclean$DamLevlow[vehdatclean$damrat %in% c(1)] = "Low"
+vehdatclean$DamLevlow[vehdatclean$damrat %in% c(2,3,4,5,6,7,8,9)] = "High"
+###sensor data###
+instdat = instdat[instdat$` SENATT` %in% c('VECG'),]
+instdat = instdat[instdat$` SENTYPD` == "ACCELEROMETER",]
 
 
-#write.table(test, "test1.txt", sep="\t")
-test1 = test[test$TSTNO == 6832,]
+#Next remove all of the tests that are not contained in the cleansed data
+#combine columns to remove
+sensorout$vehid = paste(sensorout$TSTNO,sensorout$` VEHNO`)
+sensorout$instid = paste(sensorout$TSTNO,sensorout$` CURNO`)
 
-resh <- reshape(data = test1, timevar = "AXIS",
+vehdatclean$vehid = paste(vehdatclean$TSTNO,vehdatclean$` VEHNO`)
+instdat$instid = paste(instdat$TSTNO,instdat$` CURNO`)
+
+sensorout = sensorout[sensorout$vehid %in% vehdatclean$vehid,]
+sensorout = sensorout[sensorout$instid %in% instdat$instid,]
+
+unique(sensorout$TSTNO)
+
+
+colnames(sensorout) = c("Signal", "Time","Force", "TSTNO","CURNO","SENATT","AXIS","AXISD", "VEHNO")
+sensorout <- subset(sensorout, select = c(1:9) )
+summary(sensorout$AXIS)
+sensorout$AXIS = as.character(sensorout$AXIS)
+
+sensorout$AXIS[startsWith(sensorout$AXIS, "X")] = "X"
+sensorout$AXIS[startsWith(sensorout$AXIS, "Y")] = "Y"
+sensorout$AXIS[startsWith(sensorout$AXIS, "Z")] = "Z"
+
+###################################Data Re-Shaping##################################################################
+
+
+
+
+resh <- reshape(data = sensorout, timevar = "AXIS",
                 idvar = c("TSTNO","Time","VEHNO"),
                 drop = c("Signal","AXISD","CURNO", "SENATT"), 
                 direction = "wide")
+summary(as.factor(resh$Force.XL))
 
-summary(resh)
-unique(test1$AXIS)
-unique(test$TSTNO)
-#memory.limit(test)
+testdat =  resh[complete.cases(resh), ]
 
-#create a subset that will be of an individual test
-testdat = subset(resh, TSTNO == 6832)
 #create a column that has the sum of the absolute value of the xyz data
-testdat$absum = abs(testdat$Force.XG) + abs(testdat$Force.YG)+ abs(testdat$Force.ZG)
-testdat$mag = sqrt( (testdat$Force.XG^ 2) + (testdat$Force.YG ^ 2) + (testdat$Force.ZG ^ 2))
+testdat$absum = abs(testdat$Force.X) + abs(testdat$Force.Y)+ abs(testdat$Force.Z)
+testdat$mag = sqrt( (testdat$Force.X^ 2) + (testdat$Force.Y ^ 2) + (testdat$Force.Z ^ 2))
 #get the row that absolute value of the xyz is at a maximum for the impact
 
-car1 = testdat[which(testdat$VEHNO == 1),]
-car2 = testdat[which(testdat$VEHNO == 2),]
+#######################NEED TO START WORK FROM HERE I.E CALCULATING THE MAX PER CRASHTEST AND INITIAL SPD ETC######################
 maxallforceabssum = car1[which.max(car1$absum),]
 maxallforcemag = car1[which.max(car1$mag),]
 
-
-#car1[250:280,]
-############velocity and trajectory of vehicle###################
-
 source('Functions.R')
 source('Numeric Operations and Engineering Model.R')
-initialspeed = 96.8
-
+initialspeed = 96.8  ## need to get this calculated correctly i.e. from the db
+mass = 1736 ## need to get this calculated correctly i.e. from the db
 attach(car1)
-gravity = 9.80665
+
 ##use the model to get the velocity and trajectory
-DatVelTraj = VelTraj(Force.XG, Force.YG,initialspeed,Time)
-DatVelTraj = DatVelTraj[1:length(Force.XG),]
+DatVelTraj = VelTraj(Force.X, Force.Y,initialspeed,Time)
+DatVelTraj = DatVelTraj[1:length(Force.X),]
 newdata = cbind(car1,DatVelTraj)
 
 ind.imp <- which.max(mag)
 f.imp <- newdata[(which.max(mag)),]
 
-# Index of impact
-ind.imp <- which.max(mag)  
-## this is really important and need to get full understanding of the meaning behind the above function/logic
-crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.04 / timeit(Time,ind.imp)), by = 1)))
-##i have intitially set this up so it will have an end time that looks like when the momentum is decreasing
-endtime = newdata[which.max(mag) + floor(0.04/ timeit(Time,ind.imp)),]
-# Get accelerometer data for crash window
-crash.acc.x <- gravity * Force.XG[c(crash.points)]
-crash.acc.y <- gravity * Force.YG[c(crash.points)]
-crash.acc.z <- gravity * Force.ZG[c(crash.points)]
-##integrate each axis using the trapizoid rule step 1
-traps.x <- 2 * sum(crash.acc.x[2:(length(crash.acc.x) - 1)])
-traps.x <- traps.x + crash.acc.x[1] + crash.acc.x[length(crash.acc.x)]
-traps.y <- 2 * sum(crash.acc.y[2:(length(crash.acc.y) - 1)])
-traps.y <- traps.y + crash.acc.y[1] + crash.acc.y[length(crash.acc.y)]
-traps.z <- 2 * sum(crash.acc.z[2:(length(crash.acc.z) - 1)])
-traps.z <- traps.y + crash.acc.z[1] + crash.acc.z[length(crash.acc.z)]
+results = momentum(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag)
 
-mass = 1736
-##integrate each axis using the trapizoid rule step 2
-mom.x.crash <- mass * timeit(Time,ind.imp) * 0.5 * traps.x
-mom.y.crash <- mass * timeit(Time,ind.imp) * 0.5 * traps.y
-mom.z.crash <- mass * timeit(Time,ind.imp) * 0.5 * traps.z
-#calculate the direciton of the momentum vector
-direction.post <- atan2(y = mom.x.crash, x = mom.y.crash)
-direction.post <- direction.post * 180 / pi
-##this handles negative angles
-if (direction.post < 0) {
-  direction.post <- 360 - abs(direction.post)
-}
+resultscom = tstset[tstset$TSTNO == 6832,]
+resultsveh = vehdat[vehdat$TSTNO == 6832,]
 
-# Where was the car hit from
-if (direction.post > 0 && direction.post < 53) {
-  impact_zone <- "SL"
-  crash_type <- "Side Impact"
-} else if (direction.post >= 53 && direction.post <= 80) {
-  impact_zone <- "BL"
-  crash_type <- "Corner Impact"
-} else if (direction.post > 80 && direction.post < 100) {
-  impact_zone <- "BC"
-  crash_type <- "Rear Impact"
-} else if (direction.post >= 100 && direction.post <= 127) {
-  impact_zone <- "BR"
-  crash_type <- "Corner Impact"
-} else if (direction.post > 127 && direction.post < 233) {
-  impact_zone <- "SR"
-  crash_type <- "Side Impact"
-} else if (direction.post >= 233 && direction.post <= 260) {
-  impact_zone <- "FR"
-  crash_type <- "Corner Impact"
-} else if (direction.post > 260 && direction.post < 280) {
-  impact_zone <- "FC"
-  crash_type <- "Front Impact"
-} else if (direction.post >= 280 && direction.post <= 307) {
-  impact_zone <- "FL"
-  crash_type <- "Corner Impact"
-} else if (direction.post > 307 && direction.post <= 360) {
-  impact_zone <- "SL"
-  crash_type <- "Side Impact"
-}
-crash_type
-impact_zone
-
-finalmag = sqrt(mom.x.crash ^ 2 + mom.y.crash ^ 2 + mom.z.crash ^2) / mass 
-
-
-if (finalmag > 2.5) {severity = "high"}
-{severity = "not high"}
-
-
-
-R = sqrt(p_x .^ 2 + p_y .^ 2); 
-
-
-
-
-
-?sort
-?floor
-##print out these charts to show how the data looks
-attach(newdata)
-plot(newdata$Time, newdata$vel)
-plot(newdata$Time, newdata$traj)
-head(car1)
-
-
-summary(y_vel)
-summary(x_vel)
-summary(trajectory)
-max(velocity)
 
