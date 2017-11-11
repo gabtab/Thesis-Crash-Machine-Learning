@@ -16,16 +16,16 @@ VelTraj = function(accelX, accely,initialspeed, Time)
   
   #1. intial conditions
   matTheta[] = 0
-  matU [1] = v0(initialspeed)
+  matU[1] = v0(initialspeed)
   x[] = 0
   y[] = 0
   #n = 1
   #2.compute trajectory and velocity of vehicle
   for (n in 1: length(accelX)){
-    delu = g * accely[n] * timeit(Time, n)   #difference in velocity
-    deltheta = g * accelX[n] / matU[n]* timeit(Time,n ) #differnce in displacement
-    matU[n+1] = matU[n] + delu  # next velocity derivative
-    matTheta[n+1] = matTheta[n] + deltheta  #next displacement derivative
+    delu = g * accely[n] * timeit(Time, n)  #this gives me the acceleration at each point in time
+    deltheta = (g * accelX[n]) / (matU[n]* timeit(Time,n )) #this give me the acceletation at each point in time in the y direction
+    matU[n+1] = matU[n] + delu  #gives me the displacement at vectorn plus i believe this is rt + delta t in lecture
+    matTheta[n+1] = matTheta[n] + deltheta  
     #velocity at t = n+1
     x_vel[n+1] = matU[n+1] * cos(matTheta[n+1])
     y_vel[n+1] = matU[n+1] * sin(matTheta[n+1])
@@ -49,37 +49,76 @@ acc.mag <- function(accelx, accely, accelz) {
 }
 
 ##################   Momentum Model   ##########################
-momentum = function(ind ,N,accelX ,accelY ,accelZ ,m,crash) {
-# get a window time window of the crash N = -epsilon = + epsilon
-  g = 9.81
-  crash.acc.x = g * accelx
-  crash.acc.y = g * accely
-  #
-  
-  crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.05 / time.step), by = 1)))
-  
+momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
+  gravity = 9.80665
+  ## this is really important and need to get full understanding of the meaning behind the below function/logic
+  crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.04 / timeit(Time,ind.imp)), by = 1)))
+  ##i have intitially set this up so it will have an end time that looks like when the momentum is decreasing
+  #endtime = newdata[which.max(mag) + floor(0.04/ timeit(Time,ind.imp)),]
   # Get accelerometer data for crash window
-  crash.acc.x <- grav.constant * acc.x[c(crash.points)]
-  crash.acc.y <- grav.constant * acc.y[c(crash.points)]
-  
-  
-  
+  crash.acc.x <- gravity * Force.XG[c(crash.points)]
+  crash.acc.y <- gravity * Force.YG[c(crash.points)]
+  crash.acc.z <- gravity * Force.ZG[c(crash.points)]
+  ##integrate each axis using the trapizoid rule step 1
   traps.x <- 2 * sum(crash.acc.x[2:(length(crash.acc.x) - 1)])
   traps.x <- traps.x + crash.acc.x[1] + crash.acc.x[length(crash.acc.x)]
   traps.y <- 2 * sum(crash.acc.y[2:(length(crash.acc.y) - 1)])
   traps.y <- traps.y + crash.acc.y[1] + crash.acc.y[length(crash.acc.y)]
-  mass = 1095
-  angle = 
-    
-  mom.x.crash <- mass * time.step * 0.5 * traps.x
-  mom.y.crash <- mass * time.step * 0.5 * traps.y
+  traps.z <- 2 * sum(crash.acc.z[2:(length(crash.acc.z) - 1)])
+  traps.z <- traps.y + crash.acc.z[1] + crash.acc.z[length(crash.acc.z)]
+  
+  ##integrate each axis using the trapizoid rule step 2
+  mom.x.crash <- mass * timeit(Time,ind.imp) * 0.5 * traps.x
+  mom.y.crash <- mass * timeit(Time,ind.imp) * 0.5 * traps.y
+  mom.z.crash <- mass * timeit(Time,ind.imp) * 0.5 * traps.z
+  #calculate the direction of the momentum vector
+  direction.post <- atan2(y = mom.x.crash, x = mom.y.crash)
+  direction.post <- direction.post * 180 / pi
+  ##this handles negative angles
+  if (direction.post < 0) {
+    direction.post <- 360 - abs(direction.post)
+  }
+  
+  # Where was the car hit from
+  if (direction.post > 0 && direction.post < 53) {
+    impact_zone <- "SL"
+    crash_type <- "Side Impact"
+  } else if (direction.post >= 53 && direction.post <= 80) {
+    impact_zone <- "BL"
+    crash_type <- "Corner Impact"
+  } else if (direction.post > 80 && direction.post < 100) {
+    impact_zone <- "BC"
+    crash_type <- "Rear Impact"
+  } else if (direction.post >= 100 && direction.post <= 127) {
+    impact_zone <- "BR"
+    crash_type <- "Corner Impact"
+  } else if (direction.post > 127 && direction.post < 233) {
+    impact_zone <- "SR"
+    crash_type <- "Side Impact"
+  } else if (direction.post >= 233 && direction.post <= 260) {
+    impact_zone <- "FR"
+    crash_type <- "Corner Impact"
+  } else if (direction.post > 260 && direction.post < 280) {
+    impact_zone <- "FC"
+    crash_type <- "Front Impact"
+  } else if (direction.post >= 280 && direction.post <= 307) {
+    impact_zone <- "FL"
+    crash_type <- "Corner Impact"
+  } else if (direction.post > 307 && direction.post <= 360) {
+    impact_zone <- "SL"
+    crash_type <- "Side Impact"
+  }
+  finalmag = sqrt(mom.x.crash ^ 2 + mom.y.crash ^ 2 + mom.z.crash ^2) / mass
+  
+  if(finalmag > 2.5){
+    severity = "high"
+  }
+  else{
+    severity = "not high"
+  }
+  results <- data.frame(impact_zone,crash_type, finalmag, severity)
+  colnames(results) <- c('impact_zone', 'crashtype', 'crash_mag', 'severity')
+  return(results)
     
 }
 
-#####
-#variables that need to go on the project sheet
-accelX = Force.XG
-accelY = Force.YG
-accelz = Force.ZG
-initialspeed = 96.8
-Time = Time
