@@ -6,6 +6,7 @@ library('RODBC')
 library('stringr')
 library('ggplot2')
 library('ggthemes')
+library('data.table')
 
 ##################EXTRACT DATA FROM DATABASE#####################################################################
 
@@ -50,9 +51,9 @@ vehdatclean$DamLevhigh[vehdatclean$damrat %in% c(4,5,6,7,8,9)] = "High"
 vehdatclean$DamLevlow[vehdatclean$damrat %in% c(1)] = "Low"
 vehdatclean$DamLevlow[vehdatclean$damrat %in% c(2,3,4,5,6,7,8,9)] = "High"
 ###sensor data###
-instdat = instdat[instdat$` SENATT` %in% c('VECG'),]
+instdat = instdat[instdat$` SENATT` =='VECG',]
 instdat = instdat[instdat$` SENTYPD` == "ACCELEROMETER",]
-
+instdat = instdat[instdat$` CHSTATD` == "PRIMARY",]
 
 #Next remove all of the tests that are not contained in the cleansed data
 #combine columns to remove
@@ -62,6 +63,7 @@ sensorout$instid = paste(sensorout$TSTNO,sensorout$` CURNO`)
 vehdatclean$vehid = paste(vehdatclean$TSTNO,vehdatclean$` VEHNO`)
 instdat$instid = paste(instdat$TSTNO,instdat$` CURNO`)
 
+###
 sensorout = sensorout[sensorout$vehid %in% vehdatclean$vehid,]
 sensorout = sensorout[sensorout$instid %in% instdat$instid,]
 
@@ -78,32 +80,40 @@ sensorout$AXIS[startsWith(sensorout$AXIS, "Y")] = "Y"
 sensorout$AXIS[startsWith(sensorout$AXIS, "Z")] = "Z"
 
 ###################################Data Re-Shaping##################################################################
-
-
-
-
 resh <- reshape(data = sensorout, timevar = "AXIS",
                 idvar = c("TSTNO","Time","VEHNO"),
                 drop = c("Signal","AXISD","CURNO", "SENATT"), 
                 direction = "wide")
-summary(as.factor(resh$Force.XL))
+summary(as.factor(resh$Force.X))
 
 testdat =  resh[complete.cases(resh), ]
+unique(testdat$TSTNO)
 
 #create a column that has the sum of the absolute value of the xyz data
 testdat$absum = abs(testdat$Force.X) + abs(testdat$Force.Y)+ abs(testdat$Force.Z)
 testdat$mag = sqrt( (testdat$Force.X^ 2) + (testdat$Force.Y ^ 2) + (testdat$Force.Z ^ 2))
-#get the row that absolute value of the xyz is at a maximum for the impact
 
-#######################NEED TO START WORK FROM HERE I.E CALCULATING THE MAX PER CRASHTEST AND INITIAL SPD ETC######################
-maxallforceabssum = car1[which.max(car1$absum),]
-maxallforcemag = car1[which.max(car1$mag),]
+dfmag = testdat %>% group_by(TSTNO) %>% top_n(1, mag)
+##got some strange results with repeat max showing there was duplicates in 700 and 703
+checkdata = instdat[instdat$TSTNO == 700,]
+checkdata
+checkdata = sensorout[sensorout$TSTNO == 709,]
+plot(checkdata$Time, checkdata$Force)
+
+testdat = testdat[!(testdat$TSTNO %in% c(700,709) ),]
+#dfabsum = testdat %>% group_by(TSTNO) %>% top_n(1, absum)
+dfmag = testdat %>% group_by(TSTNO) %>% top_n(1, mag)
+dfmag$vehid = paste(dfmag$TSTNO,dfmag$VEHNO)
+dfmag = data.frame(dfmag[,c(1:9)], initialspeed=vehdatclean[match(dfmag$vehid, vehdatclean$vehid), 51])
+dfmag = data.frame(dfmag[,c(1:10)], vehwht=vehdatclean[match(dfmag$vehid, vehdatclean$vehid), 17])
 
 source('Functions.R')
 source('Numeric Operations and Engineering Model.R')
-initialspeed = 96.8  ## need to get this calculated correctly i.e. from the db
-mass = 1736 ## need to get this calculated correctly i.e. from the db
-attach(car1)
+
+
+##################have all the data together just need to get it all through the functions --------
+
+
 
 ##use the model to get the velocity and trajectory
 DatVelTraj = VelTraj(Force.X, Force.Y,initialspeed,Time)
