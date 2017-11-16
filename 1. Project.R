@@ -40,8 +40,6 @@ tstdatv = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP')),]
 vehdat = vehdatclean[(vehdatclean$` VEHSPD` == 0), ]
 vehdatzero = data.frame(vehdatclean[,c(1:51)], clsspd =tstset[match(vehdatclean$TSTNO, tstset$TSTNO), 23])
 vehdatclean = vehdatclean[complete.cases(vehdatclean[ , 51]),]
-
-
 ####check how many vehicles that have 0 initial speed have an impact velocity in the test 
 
 vehdatclean = vehdatclean[!(vehdatclean$` VEHSPD` == 0), ]
@@ -50,13 +48,14 @@ vehdatclean = vehdatclean[!(vehdatclean$` MAKED` == 'NHTSA'),]
 vehdatclean$damrat = str_sub(vehdatclean$` VDI`,-1,-1)
 vehdatclean = vehdatclean[!vehdatclean$damrat == 0,]
 ##extract any tests where there has been 2 cars crashed into each other at speed
-car2test = vehdatclean$TSTNO[duplicated(vehdatclean$TSTNO)]
+twoveh = tstset$TSTNO[tstset$` TSTCFN` == 'VTV']
+vehdatmean = vehdatclean[!vehdatclean$TSTNO %in% twoveh,]
 
 #calculate means with t-test
-summary(as.factor(vehdatclean$damrat))
+summary(as.factor(vehdatmean$damrat))
 
-summary(vehdatclean$damrat)
-spdmean = by(vehdatclean$` VEHSPD`,vehdatclean$damrat,t.test)
+summary(vehdatmean$damrat)
+spdmean = by(vehdatmean$` CRHDST`,vehdatmean$damrat,t.test)
 spdmean <- matrix(c(unlist(spdmean[[1]][5:4]),unlist(spdmean[[2]][5:4]),unlist(spdmean[[3]][5:4]),unlist(spdmean[[4]][5:4]),
                     unlist(spdmean[[5]][5:4]),unlist(spdmean[[6]][5:4]),unlist(spdmean[[7]][5:4])),nrow = 7, byrow = T)
 spdmean <- data.frame(cbind(spdmean, c('1','2','3','4','5','6','7+'))); colnames(spdmean)=c('mean','lcl','ucl','Rating')
@@ -64,15 +63,15 @@ spdmean$mean = as.numeric(as.character(spdmean$mean));spdmean$lcl = as.numeric(a
 spdmean$ucl = as.numeric(as.character(spdmean$ucl)) 
 #graph the means
 ggplot(data = spdmean, aes(x = Rating, y = spdmean[,1]))+geom_errorbar(aes(ymin =lcl, ymax =ucl),width = .1) +
-  geom_line() + geom_point() + ylab("Average Speed")+ xlab('Rating') + labs(title = "Average Speed by Rating with CI 95%")+
+  geom_line() + geom_point() + ylab("Average Crush Distance")+ xlab('Rating') + labs(title = "Average Crush by Rating with CI 95%")+
   theme_economist()+
-  geom_hline(aes(yintercept = 50),colour="steelblue", linetype="dashed", size = 1.5) +
-  geom_hline(aes(yintercept = 45),colour="red", linetype="dashed", size = 1.5)
+  geom_hline(aes(yintercept = 465),colour="steelblue", linetype="dashed", size = 1.5)
+  #geom_hline(aes(yintercept = 40),colour="red", linetype="dashed", size = 1.5)
 
 ##because of the split in the data I will now categorise level 1-3 as low and 4-9 as high but due to other line i will do 2 levels
 vehdatclean$DamLevhigh[vehdatclean$damrat %in% c(1,2,3)] = "Low"
 vehdatclean$DamLevhigh[vehdatclean$damrat %in% c(4,5,6,7,8,9)] = "High"
-vehdatclean$DamLevlow[vehdatclean$damrat %in% c(1,2)] = "Low"   ######### NO BASIS FOR 2 SO COME BACK #############
+vehdatclean$DamLevlow[vehdatclean$damrat %in% c(1,2)] = "Low"   ###based on the average crush in a t-test
 vehdatclean$DamLevlow[vehdatclean$damrat %in% c(2,3,4,5,6,7,8,9)] = "High"
 ###sensor data###
 instdat = instdat[instdat$` SENATT` =='VECG',]
@@ -140,32 +139,32 @@ source('Functions.R')
 source('Numeric Operations and Engineering Model.R')
 totalresults = NULL
 for (i in dfmag$TSTNO){
-
-    ##use the model to get the velocity and trajectory
-    DatVelTraj = VelTraj(testdat$Force.X[testdat$TSTNO == i ], testdat$Force.Y[testdat$TSTNO == i ],
-                         dfmag$initialspeed[dfmag$TSTNO == i],testdat$Time[testdat$TSTNO == i])
-    DatVelTraj = DatVelTraj[1:length(testdat$Force.X[testdat$TSTNO == i]),]
-    
-    testdat$vel[testdat$TSTNO == i] = DatVelTraj$vel
-    testdat$traj[testdat$TSTNO == i] = DatVelTraj$traj
-    
-    
-    ind.dat = testdat[testdat$TSTNO == i ,]
-    ind.imp = which.max(ind.dat$mag)
-    f.imp <- ind.dat[ind.imp,]
-    
-    results = momentum(ind.imp,ind.dat$Time,ind.dat$Force.X, ind.dat$Force.Y, ind.dat$Force.Z,
-                       dfmag$vehwht[dfmag$TSTNO == i],f.imp$mag)
-    results$TSTNO = i
-    results$GTAngle = tstset$` IMPANG`[tstset$TSTNO == i]
-    results$GTseverity1 = vehdatclean$DamLevhigh[vehdatclean$TSTNO == i]
-    results$GTseverity2 = vehdatclean$DamLevlow[vehdatclean$TSTNO == i]
   
-    if (exists('totalresults') == TRUE) {
-      totalresults = rbind(totalresults,results)
-    }  else{
-      totalresults = results
-    } 
+  ##use the model to get the velocity and trajectory
+  DatVelTraj = VelTraj(testdat$Force.X[testdat$TSTNO == i ], testdat$Force.Y[testdat$TSTNO == i ],
+                       dfmag$initialspeed[dfmag$TSTNO == i],testdat$Time[testdat$TSTNO == i])
+  DatVelTraj = DatVelTraj[1:length(testdat$Force.X[testdat$TSTNO == i]),]
+  
+  testdat$vel[testdat$TSTNO == i] = DatVelTraj$vel
+  testdat$traj[testdat$TSTNO == i] = DatVelTraj$traj
+  
+  
+  ind.dat = testdat[testdat$TSTNO == i ,]
+  ind.imp = which.max(ind.dat$mag)
+  f.imp <- ind.dat[ind.imp,]
+  
+  results = momentum(ind.imp,ind.dat$Time,ind.dat$Force.X, ind.dat$Force.Y, ind.dat$Force.Z,
+                     dfmag$vehwht[dfmag$TSTNO == i],f.imp$mag)
+  results$TSTNO = i
+  results$GTAngle = tstset$` IMPANG`[tstset$TSTNO == i]
+  results$GTseverity1 = vehdatclean$DamLevhigh[vehdatclean$TSTNO == i]
+  results$GTseverity2 = vehdatclean$DamLevlow[vehdatclean$TSTNO == i]
+  
+  if (exists('totalresults') == TRUE) {
+    totalresults = rbind(totalresults,results)
+  }  else{
+    totalresults = results
+  } 
 }
 
 plot(testdat[testdat$TSTNO == 3414,], testdat$Force.X[testdat$TSTNO == 3414])
