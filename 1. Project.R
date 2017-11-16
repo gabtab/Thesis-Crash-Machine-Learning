@@ -166,7 +166,7 @@ for (i in dfmag$TSTNO){
     totalresults = results
   } 
 }
-
+testimpact = tstset[tstset ]
 plot(testdat[testdat$TSTNO == 3414,], testdat$Force.X[testdat$TSTNO == 3414])
 instdat[instdat$TSTNO == 3414,]
 vehdatclean[vehdatclean$TSTNO == 3414,]
