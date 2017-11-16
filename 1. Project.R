@@ -17,17 +17,41 @@ vehdat <- sqlQuery(dbhandle, 'select * from dbo.veh')
 instdat <- sqlQuery(dbhandle, 'select * from dbo.instr')
 
 ##################START DATACLEANING ###########################################################################
-#remove any tests with no rating
+#find out if the cases at the end of the script are actually in the data at the beginning i.e. is there 4000 rows in 
+##sensor out for these 2663,6928,5408,6979
+sensorout = sensorout[(!sensorout$Force == 0),]
+testsensor = sensorout[sensorout$TSTNO %in% c(2663,6928,5408,6979),]
+testsensormax = testsensor %>% group_by(TSTNO) %>% top_n(1, Signal)
+summary(testsensor)
+## check the test type breakdown
+vehdattest = data.frame(summary(tstset$` TSTCFND`))
+vehdattest
+###remove tests that do not involve a vehicle
+tstset = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP','VTV')),]
+#find out how many cases do not have the correct format engineering category
+vehdattest = data.frame(summary(vehdat$` VDI`))
+vehdattest = data.frame(summary(vehdatclean$` VDI`))
+#remove any tests with no correct engineering rating
+
 vehdatclean = vehdat[(vehdat$` VDI` %in% regmatches(vehdat$` VDI`,regexpr("^[0-9]{1,2}[A-Za-z]{3,4}[0-9]{1,2}", vehdat$` VDI`))),]
 #remove cars that arent driving,have nas or are barrier information
+##if any cases are VTB VTI VTP then if they have 0 initial speed it can be replaced by CLSSPD in Test data
+tstdatv = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP')),]
+vehdat = vehdatclean[(vehdatclean$` VEHSPD` == 0), ]
+vehdatzero = data.frame(vehdatclean[,c(1:51)], clsspd =tstset[match(vehdatclean$TSTNO, tstset$TSTNO), 23])
 vehdatclean = vehdatclean[complete.cases(vehdatclean[ , 51]),]
+
+
+####check how many vehicles that have 0 initial speed have an impact velocity in the test 
+
 vehdatclean = vehdatclean[!(vehdatclean$` VEHSPD` == 0), ]
 vehdatclean = vehdatclean[!(vehdatclean$` MAKED` == 'NHTSA'),]
 ##create a variable with the VDI converted to a number between 0 and 9 and remove 0 (as it is an odd result and had no report)
 vehdatclean$damrat = str_sub(vehdatclean$` VDI`,-1,-1)
 vehdatclean = vehdatclean[!vehdatclean$damrat == 0,]
+##extract any tests where there has been 2 cars crashed into each other at speed
+car2test = vehdatclean$TSTNO[duplicated(vehdatclean$TSTNO)]
 
-#####need to chart out the differences and determine what is high and low############
 #calculate means with t-test
 summary(as.factor(vehdatclean$damrat))
 
@@ -48,7 +72,7 @@ ggplot(data = spdmean, aes(x = Rating, y = spdmean[,1]))+geom_errorbar(aes(ymin 
 ##because of the split in the data I will now categorise level 1-3 as low and 4-9 as high but due to other line i will do 2 levels
 vehdatclean$DamLevhigh[vehdatclean$damrat %in% c(1,2,3)] = "Low"
 vehdatclean$DamLevhigh[vehdatclean$damrat %in% c(4,5,6,7,8,9)] = "High"
-vehdatclean$DamLevlow[vehdatclean$damrat %in% c(1)] = "Low"
+vehdatclean$DamLevlow[vehdatclean$damrat %in% c(1,2)] = "Low"   ######### NO BASIS FOR 2 SO COME BACK #############
 vehdatclean$DamLevlow[vehdatclean$damrat %in% c(2,3,4,5,6,7,8,9)] = "High"
 ###sensor data###
 instdat = instdat[instdat$` SENATT` =='VECG',]
@@ -107,25 +131,46 @@ dfmag$vehid = paste(dfmag$TSTNO,dfmag$VEHNO)
 dfmag = data.frame(dfmag[,c(1:9)], initialspeed=vehdatclean[match(dfmag$vehid, vehdatclean$vehid), 51])
 dfmag = data.frame(dfmag[,c(1:10)], vehwht=vehdatclean[match(dfmag$vehid, vehdatclean$vehid), 17])
 
+##need to check if the dataframe has enough occurances 
+checktest = testdat %>% group_by(TSTNO) %>% summarise(no_rows = length(TSTNO))
+testdat = testdat[!(testdat$TSTNO %in% c(2663,6928,5408,6979) ),]
+dfmag = dfmag[!(dfmag$TSTNO %in% c(2663,6928,5408,6979)),]
+
 source('Functions.R')
 source('Numeric Operations and Engineering Model.R')
+totalresults = NULL
+for (i in dfmag$TSTNO){
 
+    ##use the model to get the velocity and trajectory
+    DatVelTraj = VelTraj(testdat$Force.X[testdat$TSTNO == i ], testdat$Force.Y[testdat$TSTNO == i ],
+                         dfmag$initialspeed[dfmag$TSTNO == i],testdat$Time[testdat$TSTNO == i])
+    DatVelTraj = DatVelTraj[1:length(testdat$Force.X[testdat$TSTNO == i]),]
+    
+    testdat$vel[testdat$TSTNO == i] = DatVelTraj$vel
+    testdat$traj[testdat$TSTNO == i] = DatVelTraj$traj
+    
+    
+    ind.dat = testdat[testdat$TSTNO == i ,]
+    ind.imp = which.max(ind.dat$mag)
+    f.imp <- ind.dat[ind.imp,]
+    
+    results = momentum(ind.imp,ind.dat$Time,ind.dat$Force.X, ind.dat$Force.Y, ind.dat$Force.Z,
+                       dfmag$vehwht[dfmag$TSTNO == i],f.imp$mag)
+    results$TSTNO = i
+    results$GTAngle = tstset$` IMPANG`[tstset$TSTNO == i]
+    results$GTseverity1 = vehdatclean$DamLevhigh[vehdatclean$TSTNO == i]
+    results$GTseverity2 = vehdatclean$DamLevlow[vehdatclean$TSTNO == i]
+  
+    if (exists('totalresults') == TRUE) {
+      totalresults = rbind(totalresults,results)
+    }  else{
+      totalresults = results
+    } 
+}
 
-##################have all the data together just need to get it all through the functions --------
-
-
-
-##use the model to get the velocity and trajectory
-DatVelTraj = VelTraj(Force.X, Force.Y,initialspeed,Time)
-DatVelTraj = DatVelTraj[1:length(Force.X),]
-newdata = cbind(car1,DatVelTraj)
-
-ind.imp <- which.max(mag)
-f.imp <- newdata[(which.max(mag)),]
-
-results = momentum(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag)
-
-resultscom = tstset[tstset$TSTNO == 6832,]
-resultsveh = vehdat[vehdat$TSTNO == 6832,]
-
-
+plot(testdat[testdat$TSTNO == 3414,], testdat$Force.X[testdat$TSTNO == 3414])
+instdat[instdat$TSTNO == 3414,]
+vehdatclean[vehdatclean$TSTNO == 3414,]
+listof2cartestsinfinal = dfmag[(dfmag$TSTNO %in% car2test),]  ###need to solve the problem of having 2 cars in the test that were driving
+cartestcol = testdat[(testdat$TSTNO %in% car2test),]  ###probably can solve by going back up to the cleaning stage and 
+######################################################### ensure the curno tstno and vehno are linked
