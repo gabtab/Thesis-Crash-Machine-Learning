@@ -52,13 +52,13 @@ acc.mag <- function(accelx, accely, accelz) {
 momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   gravity = 9.80665
   ## this is really important and need to get full understanding of the meaning behind the below function/logic
-  crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.04 / timeit(Time,ind.imp)), by = 1)))
+  crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.05 / timeit(Time,ind.imp)), by = 1)))
   ##i have intitially set this up so it will have an end time that looks like when the momentum is decreasing
   #endtime = newdata[which.max(mag) + floor(0.04/ timeit(Time,ind.imp)),]
   # Get accelerometer data for crash window
-  crash.acc.x <- gravity * Force.XG[c(crash.points)]
-  crash.acc.y <- gravity * Force.YG[c(crash.points)]
-  crash.acc.z <- gravity * Force.ZG[c(crash.points)]
+  crash.acc.x <- gravity * accelX[c(crash.points)]
+  crash.acc.y <- gravity * accelY[c(crash.points)]
+  crash.acc.z <- gravity * accelZ[c(crash.points)]
   ##integrate each axis using the trapizoid rule step 1
   traps.x <- 2 * sum(crash.acc.x[2:(length(crash.acc.x) - 1)])
   traps.x <- traps.x + crash.acc.x[1] + crash.acc.x[length(crash.acc.x)]
@@ -77,37 +77,11 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   ##this handles negative angles
   if (direction.post < 0) {
     direction.post <- 360 - abs(direction.post)
-  }
+  } 
   
   # Where was the car hit from
-  if (direction.post > 0 && direction.post < 53) {
-    impact_zone <- "SL"
-    crash_type <- "Side Impact"
-  } else if (direction.post >= 53 && direction.post <= 80) {
-    impact_zone <- "BL"
-    crash_type <- "Corner Impact"
-  } else if (direction.post > 80 && direction.post < 100) {
-    impact_zone <- "BC"
-    crash_type <- "Rear Impact"
-  } else if (direction.post >= 100 && direction.post <= 127) {
-    impact_zone <- "BR"
-    crash_type <- "Corner Impact"
-  } else if (direction.post > 127 && direction.post < 233) {
-    impact_zone <- "SR"
-    crash_type <- "Side Impact"
-  } else if (direction.post >= 233 && direction.post <= 260) {
-    impact_zone <- "FR"
-    crash_type <- "Corner Impact"
-  } else if (direction.post > 260 && direction.post < 280) {
-    impact_zone <- "FC"
-    crash_type <- "Front Impact"
-  } else if (direction.post >= 280 && direction.post <= 307) {
-    impact_zone <- "FL"
-    crash_type <- "Corner Impact"
-  } else if (direction.post > 307 && direction.post <= 360) {
-    impact_zone <- "SL"
-    crash_type <- "Side Impact"
-  }
+  angle = DirectionCat(direction.post)
+ 
   finalmag = sqrt(mom.x.crash ^ 2 + mom.y.crash ^ 2 + mom.z.crash ^2) / mass
   
   if(finalmag > 2.5){
@@ -116,8 +90,8 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   else{
     severity = "not high"
   }
-  results <- data.frame(impact_zone,crash_type, finalmag, severity)
-  colnames(results) <- c('impact_zone', 'crashtype', 'crash_mag', 'severity')
+  results <- data.frame(angle$impact_zone,direction.post,angle$crash_type, finalmag, severity)
+  colnames(results) <- c('impact_zone', 'crash angle','crash_type', 'crash_mag', 'severity')
   return(results)
     
 }

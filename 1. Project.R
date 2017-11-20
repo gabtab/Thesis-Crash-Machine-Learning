@@ -7,7 +7,8 @@ library('stringr')
 library('ggplot2')
 library('ggthemes')
 library('data.table')
-
+library('readr')
+library(xlsx)
 ##################EXTRACT DATA FROM DATABASE#####################################################################
 
 dbhandle <- odbcDriverConnect('driver={SQL Server};server=LAPTOP-PAPDF3KG\\SQLEXPRESS;database=CrashData;trusted_connection=true')
@@ -20,42 +21,39 @@ instdat <- sqlQuery(dbhandle, 'select * from dbo.instr')
 #find out if the cases at the end of the script are actually in the data at the beginning i.e. is there 4000 rows in 
 ##sensor out for these 2663,6928,5408,6979
 sensorout = sensorout[(!sensorout$Force == 0),]
-testsensor = sensorout[sensorout$TSTNO %in% c(2663,6928,5408,6979),]
-testsensormax = testsensor %>% group_by(TSTNO) %>% top_n(1, Signal)
-summary(testsensor)
+#testsensor = sensorout[sensorout$TSTNO %in% c(2663,6928,5408,6979),]
+#testsensormax = testsensor %>% group_by(TSTNO) %>% top_n(1, Signal)
+#summary(testsensor)
 ## check the test type breakdown
 vehdattest = data.frame(summary(tstset$` TSTCFND`))
-vehdattest
+
+write.table(vehdattest,"D:/College/Proposal 2/Tables and formulas/testtypes.txt",  sep="\t")
 ###remove tests that do not involve a vehicle
-tstset = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP','VTV')),]
+tstset = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP')),]
 #find out how many cases do not have the correct format engineering category
 vehdattest = data.frame(summary(vehdat$` VDI`))
-vehdattest = data.frame(summary(vehdatclean$` VDI`))
+
 #remove any tests with no correct engineering rating
 
 vehdatclean = vehdat[(vehdat$` VDI` %in% regmatches(vehdat$` VDI`,regexpr("^[0-9]{1,2}[A-Za-z]{3,4}[0-9]{1,2}", vehdat$` VDI`))),]
 #remove cars that arent driving,have nas or are barrier information
-##if any cases are VTB VTI VTP then if they have 0 initial speed it can be replaced by CLSSPD in Test data
-tstdatv = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP')),]
-vehdat = vehdatclean[(vehdatclean$` VEHSPD` == 0), ]
-vehdatzero = data.frame(vehdatclean[,c(1:51)], clsspd =tstset[match(vehdatclean$TSTNO, tstset$TSTNO), 23])
-vehdatclean = vehdatclean[complete.cases(vehdatclean[ , 51]),]
-####check how many vehicles that have 0 initial speed have an impact velocity in the test 
 
-vehdatclean = vehdatclean[!(vehdatclean$` VEHSPD` == 0), ]
+####check how many vehicles that have 0 initial speed have an impact velocity in the test 
+#vehdatclean = vehdatclean[!(vehdatclean$` VEHSPD` == 0), ]
 vehdatclean = vehdatclean[!(vehdatclean$` MAKED` == 'NHTSA'),]
 ##create a variable with the VDI converted to a number between 0 and 9 and remove 0 (as it is an odd result and had no report)
 vehdatclean$damrat = str_sub(vehdatclean$` VDI`,-1,-1)
 vehdatclean = vehdatclean[!vehdatclean$damrat == 0,]
+vehdatclean = vehdatclean[vehdatclean$TSTNO %in% tstset$TSTNO,]
 ##extract any tests where there has been 2 cars crashed into each other at speed
-twoveh = tstset$TSTNO[tstset$` TSTCFN` == 'VTV']
-vehdatmean = vehdatclean[!vehdatclean$TSTNO %in% twoveh,]
+
+#vehdatmean = vehdatclean[!vehdatclean$TSTNO %in% twoveh,]
 
 #calculate means with t-test
-summary(as.factor(vehdatmean$damrat))
+summary(as.factor(vehdatclean$damrat))
 
-summary(vehdatmean$damrat)
-spdmean = by(vehdatmean$` CRHDST`,vehdatmean$damrat,t.test)
+summary(vehdatclean$damrat)
+spdmean = by(vehdatclean$` CRHDST`,vehdatclean$damrat,t.test)
 spdmean <- matrix(c(unlist(spdmean[[1]][5:4]),unlist(spdmean[[2]][5:4]),unlist(spdmean[[3]][5:4]),unlist(spdmean[[4]][5:4]),
                     unlist(spdmean[[5]][5:4]),unlist(spdmean[[6]][5:4]),unlist(spdmean[[7]][5:4])),nrow = 7, byrow = T)
 spdmean <- data.frame(cbind(spdmean, c('1','2','3','4','5','6','7+'))); colnames(spdmean)=c('mean','lcl','ucl','Rating')
@@ -65,14 +63,12 @@ spdmean$ucl = as.numeric(as.character(spdmean$ucl))
 ggplot(data = spdmean, aes(x = Rating, y = spdmean[,1]))+geom_errorbar(aes(ymin =lcl, ymax =ucl),width = .1) +
   geom_line() + geom_point() + ylab("Average Crush Distance")+ xlab('Rating') + labs(title = "Average Crush by Rating with CI 95%")+
   theme_economist()+
-  geom_hline(aes(yintercept = 465),colour="steelblue", linetype="dashed", size = 1.5)
+  geom_hline(aes(yintercept = 465),colour="steelblue", size = 1.5)
   #geom_hline(aes(yintercept = 40),colour="red", linetype="dashed", size = 1.5)
 
 ##because of the split in the data I will now categorise level 1-3 as low and 4-9 as high but due to other line i will do 2 levels
-vehdatclean$DamLevhigh[vehdatclean$damrat %in% c(1,2,3)] = "Low"
-vehdatclean$DamLevhigh[vehdatclean$damrat %in% c(4,5,6,7,8,9)] = "High"
-vehdatclean$DamLevlow[vehdatclean$damrat %in% c(1,2)] = "Low"   ###based on the average crush in a t-test
-vehdatclean$DamLevlow[vehdatclean$damrat %in% c(2,3,4,5,6,7,8,9)] = "High"
+vehdatclean$DamLev[vehdatclean$damrat %in% c(1,2)] = "Low"   ###based on the average crush in a t-test
+vehdatclean$DamLev[vehdatclean$damrat %in% c(2,3,4,5,6,7,8,9)] = "High"
 ###sensor data###
 instdat = instdat[instdat$` SENATT` =='VECG',]
 instdat = instdat[instdat$` SENTYPD` == "ACCELEROMETER",]
@@ -82,13 +78,15 @@ instdat = instdat[instdat$` CHSTATD` == "PRIMARY",]
 #combine columns to remove
 sensorout$vehid = paste(sensorout$TSTNO,sensorout$` VEHNO`)
 sensorout$instid = paste(sensorout$TSTNO,sensorout$` CURNO`)
-
+head(sensorout)
+head(instdat)
 vehdatclean$vehid = paste(vehdatclean$TSTNO,vehdatclean$` VEHNO`)
 instdat$instid = paste(instdat$TSTNO,instdat$` CURNO`)
 
 ###
 sensorout = sensorout[sensorout$vehid %in% vehdatclean$vehid,]
 sensorout = sensorout[sensorout$instid %in% instdat$instid,]
+sensorout = sensorout[sensorout$TSTNO %in% instdat$TSTNO,]
 
 unique(sensorout$TSTNO)
 
@@ -121,19 +119,20 @@ dfmag = testdat %>% group_by(TSTNO) %>% top_n(1, mag)
 checkdata = instdat[instdat$TSTNO == 700,]
 checkdata
 checkdata = sensorout[sensorout$TSTNO == 709,]
+##two examples of questionable data below -- need to label correctly etc.
 plot(checkdata$Time, checkdata$Force)
-
+plot(testdat$Time[testdat$TSTNO == 5470], testdat$Force.Z[testdat$TSTNO == 5470])
 testdat = testdat[!(testdat$TSTNO %in% c(700,709) ),]
 #dfabsum = testdat %>% group_by(TSTNO) %>% top_n(1, absum)
 dfmag = testdat %>% group_by(TSTNO) %>% top_n(1, mag)
 dfmag$vehid = paste(dfmag$TSTNO,dfmag$VEHNO)
-dfmag = data.frame(dfmag[,c(1:9)], initialspeed=vehdatclean[match(dfmag$vehid, vehdatclean$vehid), 51])
+dfmag = data.frame(dfmag[,c(1:9)], initialspeed=tstset[match(dfmag$TSTNO, tstset$TSTNO), 23])
 dfmag = data.frame(dfmag[,c(1:10)], vehwht=vehdatclean[match(dfmag$vehid, vehdatclean$vehid), 17])
 
 ##need to check if the dataframe has enough occurances 
 checktest = testdat %>% group_by(TSTNO) %>% summarise(no_rows = length(TSTNO))
-testdat = testdat[!(testdat$TSTNO %in% c(2663,6928,5408,6979) ),]
-dfmag = dfmag[!(dfmag$TSTNO %in% c(2663,6928,5408,6979)),]
+testdat = testdat[!(testdat$TSTNO %in% c(2663,6928,5408,6979,5405, 5408,6286,1804,5470) ),]
+dfmag = dfmag[!(dfmag$TSTNO %in% c(2663,6928,5408,6979, 5405,5408,6286,1804,5470)),]
 
 source('Functions.R')
 source('Numeric Operations and Engineering Model.R')
@@ -152,13 +151,16 @@ for (i in dfmag$TSTNO){
   ind.dat = testdat[testdat$TSTNO == i ,]
   ind.imp = which.max(ind.dat$mag)
   f.imp <- ind.dat[ind.imp,]
-  
   results = momentum(ind.imp,ind.dat$Time,ind.dat$Force.X, ind.dat$Force.Y, ind.dat$Force.Z,
                      dfmag$vehwht[dfmag$TSTNO == i],f.imp$mag)
   results$TSTNO = i
   results$GTAngle = tstset$` IMPANG`[tstset$TSTNO == i]
-  results$GTseverity1 = vehdatclean$DamLevhigh[vehdatclean$TSTNO == i]
-  results$GTseverity2 = vehdatclean$DamLevlow[vehdatclean$TSTNO == i]
+    angle = DirectionCat(tstset$` IMPANG`[tstset$TSTNO == i])
+    pdof = DirectionCat(vehdatclean$` PDOF`[vehdatclean$vehid == dfmag$vehid[dfmag$TSTNO == i]])
+  results$GTAngCat = angle$impact_zone
+  results$PDOF = pdof$impact_zone
+  results$GTseverity = vehdatclean$DamLev[vehdatclean$TSTNO == i]
+
   
   if (exists('totalresults') == TRUE) {
     totalresults = rbind(totalresults,results)
@@ -167,9 +169,11 @@ for (i in dfmag$TSTNO){
   } 
 }
 testimpact = tstset[tstset ]
-plot(testdat[testdat$TSTNO == 3414,], testdat$Force.X[testdat$TSTNO == 3414])
-instdat[instdat$TSTNO == 3414,]
-vehdatclean[vehdatclean$TSTNO == 3414,]
+plot(testdat$Time[testdat$TSTNO == 5470], testdat$Force.Z[testdat$TSTNO == 5470])
+instdat[instdat$TSTNO == 5470,]
+vehdatclean[vehdatclean$TSTNO == 5470,]
+
 listof2cartestsinfinal = dfmag[(dfmag$TSTNO %in% car2test),]  ###need to solve the problem of having 2 cars in the test that were driving
 cartestcol = testdat[(testdat$TSTNO %in% car2test),]  ###probably can solve by going back up to the cleaning stage and 
 ######################################################### ensure the curno tstno and vehno are linked
+###############THING TO TRY -- REMOve ALL TSTTYPES EXCEPT VT but get rid of VTV THEN use CLSSPD as the initial speed for test
