@@ -1,3 +1,20 @@
+##create multiple hisotgrams
+plotHist <- function(data_in, i) {
+  data <- data.frame(x=data_in[[i]])
+  p <- ggplot(data=data, aes(x=factor(x))) + stat_count() + xlab(colnames(data_in)[i]) + theme_light() + 
+    theme(axis.text.x = element_text(angle = 90, hjust =1))
+  return (p)
+}
+##create multiple bars in grid
+doPlots <- function(data_in, fun, ii, ncol=3) {
+  pp <- list()
+  for (i in ii) {
+    p <- fun(data_in=data_in, i=i)
+    pp <- c(pp, list(p))
+  }
+  do.call("grid.arrange", c(pp, ncol=ncol))
+}
+
 ##convert kmh to m/s
 v0 = function(v0) { v0 *1000 /3600 }
 
@@ -38,3 +55,5 @@ if (direction.post >= 0 && direction.post < 53) {
   colnames(angle) <- c('impact_zone', 'crash_type')
   return(angle)
 }
+
+
