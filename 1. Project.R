@@ -12,10 +12,13 @@ library(xlsx)
 library(gridExtra)
 library(Hmisc)
 library(psych)
+library(e1071)
+library(caret)
 
 source('Functions.R')
-source('Data Re-shape and cleanse.R')
 source('Numeric Operations and Engineering Model.R')
+source('Data Re-shape and cleanse.R')
+
 source('2. SVM model.R')
 
 
