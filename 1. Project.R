@@ -19,6 +19,7 @@ source('Functions.R')
 source('Numeric Operations and Engineering Model.R')
 source('Data Re-shape and cleanse.R')
 
-source('2. SVM model.R')
+#source('2. SVM model.R')
+source('3. Regression.R')
 
 

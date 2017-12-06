@@ -26,6 +26,7 @@ describe(dfReg)
 describe(tstReg)
 describe(vehdatReg)
 
+
 testReg = lm(impangle ~ Force.X * Force.Y * Force.Z * mag * initialspeed * vehwt * vehlen * vehwid, data = dfReg)
 summary(testReg)
 drop1(testReg, test = 'F')
@@ -33,3 +34,5 @@ update(testReg, .~. -Force.X:Force.Y:Force.Z:mag:initialspeed:vehwt:vehlen:vehwi
 drop1(testReg, test = 'F')
 update(testReg, .~. -Force.X:Force.Y:Force.Z:mag:initialspeed:vehwt:vehlen:vehwid)
 drop1(testReg, test = 'F')
+
+unique(dfReg$impangle)
