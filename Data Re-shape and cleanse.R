@@ -111,6 +111,7 @@ sensoutReg$instid = paste(sensoutReg$TSTNO,sensoutReg$` CURNO`)
 head(sensoutReg)
 head(instdatReg)
 
+vehdat$vehid = paste(vehdat$TSTNO,vehdat$` VEHNO`)
 vehdatclean$vehid = paste(vehdatclean$TSTNO,vehdatclean$` VEHNO`)
 vehdatReg$vehid = paste(vehdatReg$TSTNO,vehdatReg$` VEHNO`)
 instdat$instid = paste(instdat$TSTNO,instdat$` CURNO`)
