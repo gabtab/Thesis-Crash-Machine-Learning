@@ -206,7 +206,9 @@ for (i in dfmag$TSTNO){
   results$GTAngCat = angle$impact_zone
   results$PDOF = pdof$impact_zone
   results$GTseverity = vehdatclean$DamLev[vehdatclean$TSTNO == i]
-  
+  results$EngSev = vehdatclean$damrat[vehdatclean$TSTNO == i]
+  results$maxmag = dfmag$mag[dfmag$TSTNO == i]
+  results$initialspeed = dfmag$initialspeed[dfmag$TSTNO == i]
   
   if (exists('totalresults') == TRUE) {
     totalresults = rbind(totalresults,results)
@@ -214,3 +216,25 @@ for (i in dfmag$TSTNO){
     totalresults = results
   } 
 }
+
+
+####This is after talking to Sean -- need to get the relationship between the classificaiton and the magnitude
+ggplot(data = totalresults, aes(x = EngSev, y = crash_mag)) + geom_point() + 
+  ylab("Magnitude")+ xlab('Engineering Severity') + labs(title = "Magnitude (m/s) versus Engineering Severity (Rating)")+
+  theme_economist()
+
+ggplot(data = totalresults, aes(x = EngSev, y = maxmag)) + geom_point() + 
+  ylab("Maximum g-force")+ xlab('Engineering Severity') + labs(title = "Maximum g-force versus Engineering Severity (Rating)")+
+  theme_economist()
+
+ggplot(data = totalresults, aes(x = EngSev, y = initialspeed)) + geom_point() + 
+  ylab("Initial Speed")+ xlab('Engineering Severity') + labs(title = "Initial Speed versus Engineering Severity (Rating)")+
+  theme_economist()
+
+
+############# Want to see what the % correct is in the total results tab for engineering model when obs are set to 125 and then for 5
+outputtable = table(totalresults$severity,totalresults$GTseverity)
+
+write.csv2(outputtable, "D:/College/Proposal 2/5. Results/EngineeringConfusion")
+
+

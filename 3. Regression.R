@@ -86,26 +86,24 @@ z <- summary(testmodel)$coefficients/summary(testmodel)$standard.errors
 p <- (1 - pnorm(abs(z), 0, 1)) * 2 ## not sure this is relevant
 p  
 ####
-RegResults1 = predict(testmodel, newdata = dfVal, se.fit = T)
-
-
- 
- for (i in dfVal$TSTNO){
-   resultreg = dfVal[dfVal$TSTNO == i,]
-   i = 2515
-   resultreg$TSTNO = i
-   resultreg$GTAngle = tstReg$` IMPANG`[tstReg$TSTNO ==  i]
-   angle = DirectionCat(as.numeric(RegResults1[1])) ##gives one result but need to loop through it 
-   pdof = DirectionCat(vehdat$` PDOF`[vehdat$vehid == dfVal$vehid[dfVal$TSTNO == i]])
-   resultreg$RegAngCat = angle$impact_zone
-   resultreg$PDOF = pdof$impact_zone
-   resultreg$GTseverity = vehdat$DamLev[vehdat$TSTNO == i]
-   if (exists('RegTotalResults') == TRUE) {
-     RegTotalResults = rbind(RegTotalResults,resultreg)
-   }  else{
-     RegTotalResults = resultreg
-   } 
- }
+dfVal$RegResults = predict(testmodel, newdata = dfVal, se.fit = T)
+# allresults = lapply(dfVal$RegResults, DirectionCat())
+#  for (i in dfVal$TSTNO){
+#    resultreg = dfVal[dfVal$TSTNO == i,]
+#    resultreg$TSTNO = i
+#    resultreg$GTAngle = tstReg$` IMPANG`[tstReg$TSTNO ==  i]
+#    angle = DirectionCat(as.numeric(RegResults1[i])) ##gives one result but need to loop through it 
+#    pdof = DirectionCat(vehdat$` PDOF`[vehdat$vehid == dfVal$vehid[dfVal$TSTNO == i]])
+#    resultreg$ResultAngle = RegResults1[i]
+#    resultreg$RegAngCat = angle$impact_zone
+#    resultreg$PDOF = pdof$impact_zone
+#    resultreg$GTseverity = vehdat$DamLev[vehdat$TSTNO == i]
+#    if (exists('RegTotalResults') == TRUE) {
+#      RegTotalResults = rbind(RegTotalResults,resultreg)
+#    }  else{
+#      RegTotalResults = resultreg
+#    } 
+#  }
  
                      
                      

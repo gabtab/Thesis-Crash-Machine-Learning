@@ -51,10 +51,10 @@ acc.mag <- function(accelx, accely, accelz) {
 ##################   Momentum Model   ##########################
 momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   gravity = 9.80665
-  ## this is really important and need to get full understanding of the meaning behind the below function/logic
-  crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.05 / timeit(Time,ind.imp)), by = 1)))
-  ##i have intitially set this up so it will have an end time that looks like when the momentum is decreasing
-  #endtime = newdata[which.max(mag) + floor(0.04/ timeit(Time,ind.imp)),]
+  ## In order to get 10 observations the 2nd function needs to be used
+  #crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.0005 / timeit(Time,ind.imp)), by = 1)))
+  crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(9), by = 1)))
+
   # Get accelerometer data for crash window
   crash.acc.x <- gravity * accelX[c(crash.points)]
   crash.acc.y <- gravity * accelY[c(crash.points)]
@@ -74,6 +74,7 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   #calculate the direction of the momentum vector
   direction.post <- atan2(y = mom.x.crash, x = mom.y.crash)
   direction.post <- direction.post * 180 / pi
+                         ##################################################################
   ##this handles negative angles
   if (direction.post < 0) {
     direction.post <- 360 - abs(direction.post)
