@@ -53,7 +53,7 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   gravity = 9.80665
   ## In order to get 10 observations the 2nd function needs to be used
   #crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.0005 / timeit(Time,ind.imp)), by = 1)))
-  crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(9), by = 1)))
+  crash.points <- sort(c(ind.imp + seq(from = 0, to = 200, by = 1)))
 
   # Get accelerometer data for crash window
   crash.acc.x <- gravity * accelX[c(crash.points)]
@@ -74,7 +74,7 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   #calculate the direction of the momentum vector
   direction.post <- atan2(y = mom.x.crash, x = mom.y.crash)
   direction.post <- direction.post * 180 / pi
-                         ##################################################################
+                  ##################################################################
   ##this handles negative angles
   if (direction.post < 0) {
     direction.post <- 360 - abs(direction.post)
@@ -85,11 +85,11 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
  
   finalmag = sqrt(mom.x.crash ^ 2 + mom.y.crash ^ 2 + mom.z.crash ^2) / mass
   
-  if(finalmag > 2.5){
-    severity = "high"
+  if(finalmag > 1.2){
+    severity = "High"
   }
   else{
-    severity = "not high"
+    severity = "Low"
   }
   results <- data.frame(angle$impact_zone,direction.post,angle$crash_type, finalmag, severity)
   colnames(results) <- c('impact_zone', 'crash angle','crash_type', 'crash_mag', 'severity')

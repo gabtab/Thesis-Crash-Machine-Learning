@@ -4,63 +4,20 @@ tstset <- sqlQuery(dbhandle, 'select * from dbo.tst')
 vehdat <- sqlQuery(dbhandle, 'select * from dbo.veh')
 instdat <- sqlQuery(dbhandle, 'select * from dbo.instr')
 
-#tstset %>% describe()
-#vehdat %>% describe()
-#instdat %>% describe()
-############################ NEED TOO FINISH THIS ************************************
-##########DAta exploration ###################################
-#thisChannel_summary <- left_join(thisChannel_summary,m_sumTMP,by="date")
 sensorzero = sensorout[(sensorout$Force == 0),]
-summarise(sensorzero)
-#colSums(sapply(tstset, tstset$CLSSPD == 0 ))
-colSums(sapply(tstset, is.na))
-###check for any duplicated rows in the dataset tables -
-#cat("Sensor Output duplicated rows are", nrow(sensorout) - nrow(unique(sensorout)))
-#cat("Test duplicated rows are", nrow(tstset) - nrow(unique(tstset)))
-#cat("Vehicle duplicated rows are", nrow(vehdat) - nrow(unique(vehdat)))
-#cat("Sensor duplicated rows are", nrow(instdat) - nrow(unique(instdat)))
-####do plots for categorical variables
-doPlots(tstset, fun = plotHist, ii = 12, ncol = 1)
-
-
-# 
-# tablesum <- thisChannel %>% group_by(date) %>% summarise(min = min(power)
-#                                                          ,max = max(power)
-#                                                          ,Q1 = quantile(power,.25)
-#                                                          ,Q2 = quantile(power,.50)
-#                                                          ,Q3 = quantile(power,.75)
-#                                                          ,sum = sum(power)
-#                                                          ,count = n()
-#                                                          ,range = (max(power) - min(power))
-# )
-# m_sumTMP <- thisChannel %>% group_by(date) %>% filter(power > min(power)) %>% 
-#   summarise(sCountAboveDailymin = n())
-# #fold that into the summarisation data
-# thisChannel_summary <- left_join(thisChannel_summary,m_sumTMP,by="date")
-
-
-
 
 ##################START DATACLEANING ###########################################################################
-#find out if the cases at the end of the script are actually in the data at the beginning i.e. is there 4000 rows in 
-##sensor out for these 2663,6928,5408,6979
-
 sensorout = sensorout[(!sensorout$Force == 0),]
 tstsetSVM = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP')),]
 tstReg = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP','VTV','ITV')),]
 tstset = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP')),]
 sensoutReg = sensorout
-
-#find out how many cases do not have the correct format engineering category
 vehdattest = data.frame(summary(vehdat$` VDI`))
-
-#remove any tests with no correct engineering rating
 
 vehdatclean = vehdat[(vehdat$` VDI` %in% regmatches(vehdat$` VDI`,regexpr("^[0-9]{1,2}[A-Za-z]{3,4}[0-9]{1,2}", vehdat$` VDI`))),]
 #remove cars that arent driving,have nas or are barrier information
 vehdatReg = vehdat
 ####check how many vehicles that have 0 initial speed have an impact velocity in the test 
-#vehdatclean = vehdatclean[!(vehdatclean$` VEHSPD` == 0), ]
 vehdatclean = vehdatclean[!(vehdatclean$` MAKED` == 'NHTSA'),]
 vehdatReg = vehdatReg[!(vehdatReg$` MAKED` == 'NHTSA'),]
 ##create a variable with the VDI converted to a number between 0 and 9 and remove 0 (as it is an odd result and had no report)
@@ -69,8 +26,6 @@ vehdatclean = vehdatclean[!vehdatclean$damrat == 0,]
 vehdatclean = vehdatclean[vehdatclean$TSTNO %in% tstset$TSTNO,]
 #vehdatReg = vehdatReg[vehdatReg$TSTNO %in% tstReg$TSTNO,]
 ##extract any tests where there has been 2 cars crashed into each other at speed
-
-#vehdatmean = vehdatclean[!vehdatclean$TSTNO %in% twoveh,]
 
 #calculate means with t-test
 summary(as.factor(vehdatclean$damrat))
@@ -91,8 +46,8 @@ ggplot(data = spdmean, aes(x = Rating, y = spdmean[,1]))+geom_errorbar(aes(ymin 
 #geom_hline(aes(yintercept = 40),colour="red", linetype="dashed", size = 1.5)
 
 ##because of the split in the data I will now categorise level 1-3 as low and 4-9 as high but due to other line i will do 2 levels
-vehdatclean$DamLev[vehdatclean$damrat %in% c(1,2,3)] = "Low"   ###based on the average crush in a t-test
-vehdatclean$DamLev[vehdatclean$damrat %in% c(4,5,6,7,8,9)] = "High"
+vehdatclean$DamLev[vehdatclean$damrat %in% c(1,3)] = "Low"   ###based on the average crush in a t-test
+vehdatclean$DamLev[vehdatclean$damrat %in% c(2,4,5,6,7,8,9)] = "High"
 vehdatclean$DamLev = as.factor(vehdatclean$DamLev)
 ###create SVM dataframe for SVM model
 vehdatclSVM = vehdatclean
@@ -156,10 +111,14 @@ summary(as.factor(resh$Force.X))
 testdat =  resh[complete.cases(resh), ]
 unique(testdat$TSTNO)
 
+
+#########set up engineering data sets ######################################################
+
 #create a column that has the sum of the absolute value of the xyz data
 testdat$absum = abs(testdat$Force.X) + abs(testdat$Force.Y)+ abs(testdat$Force.Z)
 testdat$mag = sqrt( (testdat$Force.X^ 2) + (testdat$Force.Y ^ 2) + (testdat$Force.Z ^ 2))
 
+dfmag = NULL
 dfmag = testdat %>% group_by(TSTNO) %>% top_n(1, mag)
 ##got some strange results with repeat max showing there was duplicates in 700 and 703
 checkdata = instdat[instdat$TSTNO == 700,]
@@ -181,60 +140,5 @@ dfmag = data.frame(dfmag[,c(1:10)], vehwht=vehdatclean[match(dfmag$vehid, vehdat
 checktest = testdat %>% group_by(TSTNO) %>% summarise(no_rows = length(TSTNO))
 testdat = testdat[!(testdat$TSTNO %in% c(2663,6928,5408,6979,5405, 5408,6286,1804,5470) ),]
 dfmag = dfmag[!(dfmag$TSTNO %in% c(2663,6928,5408,6979, 5405,5408,6286,1804,5470)),]
-
-
-for (i in dfmag$TSTNO){
-  
-  ##use the model to get the velocity and trajectory
-  DatVelTraj = VelTraj(testdat$Force.X[testdat$TSTNO == i ], testdat$Force.Y[testdat$TSTNO == i ],
-                       dfmag$initialspeed[dfmag$TSTNO == i],testdat$Time[testdat$TSTNO == i])
-  DatVelTraj = DatVelTraj[1:length(testdat$Force.X[testdat$TSTNO == i]),]
-  
-  testdat$vel[testdat$TSTNO == i] = DatVelTraj$vel
-  testdat$traj[testdat$TSTNO == i] = DatVelTraj$traj
-  
-  
-  ind.dat = testdat[testdat$TSTNO == i ,]
-  ind.imp = which.max(ind.dat$mag)
-  f.imp <- ind.dat[ind.imp,]
-  results = momentum(ind.imp,ind.dat$Time,ind.dat$Force.X, ind.dat$Force.Y, ind.dat$Force.Z,
-                     dfmag$vehwht[dfmag$TSTNO == i],f.imp$mag)
-  results$TSTNO = i
-  results$GTAngle = tstset$` IMPANG`[tstset$TSTNO == i]
-  angle = DirectionCat(tstset$` IMPANG`[tstset$TSTNO == i])
-  pdof = DirectionCat(vehdatclean$` PDOF`[vehdatclean$vehid == dfmag$vehid[dfmag$TSTNO == i]])
-  results$GTAngCat = angle$impact_zone
-  results$PDOF = pdof$impact_zone
-  results$GTseverity = vehdatclean$DamLev[vehdatclean$TSTNO == i]
-  results$EngSev = vehdatclean$damrat[vehdatclean$TSTNO == i]
-  results$maxmag = dfmag$mag[dfmag$TSTNO == i]
-  results$initialspeed = dfmag$initialspeed[dfmag$TSTNO == i]
-  
-  if (exists('totalresults') == TRUE) {
-    totalresults = rbind(totalresults,results)
-  }  else{
-    totalresults = results
-  } 
-}
-
-
-####This is after talking to Sean -- need to get the relationship between the classificaiton and the magnitude
-ggplot(data = totalresults, aes(x = EngSev, y = crash_mag)) + geom_point() + 
-  ylab("Magnitude")+ xlab('Engineering Severity') + labs(title = "Magnitude (m/s) versus Engineering Severity (Rating)")+
-  theme_economist()
-
-ggplot(data = totalresults, aes(x = EngSev, y = maxmag)) + geom_point() + 
-  ylab("Maximum g-force")+ xlab('Engineering Severity') + labs(title = "Maximum g-force versus Engineering Severity (Rating)")+
-  theme_economist()
-
-ggplot(data = totalresults, aes(x = EngSev, y = initialspeed)) + geom_point() + 
-  ylab("Initial Speed")+ xlab('Engineering Severity') + labs(title = "Initial Speed versus Engineering Severity (Rating)")+
-  theme_economist()
-
-
-############# Want to see what the % correct is in the total results tab for engineering model when obs are set to 125 and then for 5
-outputtable = table(totalresults$severity,totalresults$GTseverity)
-
-write.csv2(outputtable, "D:/College/Proposal 2/5. Results/EngineeringConfusion")
 
 
