@@ -112,7 +112,7 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   gravity = 9.80665
   ## In order to get 10 observations the 2nd function needs to be used
   #crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.0005 / timeit(Time,ind.imp)), by = 1)))
-  crash.points <- sort(c(ind.imp + seq(from = 0, to = 70, by = 1)))
+  crash.points <- sort(c(ind.imp + seq(from = 0, to = 50, by = 1)))
   
   # Get accelerometer data for crash window
   crash.acc.x <- gravity * accelX[c(crash.points)]

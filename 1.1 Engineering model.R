@@ -1,6 +1,6 @@
 
 
-### run from here if you want to change the length of the crash in the function and re-run
+
 totalresults = NULL
 outputtable = NULL
 outputtable1 = NULL
@@ -55,8 +55,6 @@ ggplot(data = totalresults, aes(x = EngSev, y = initialspeed)) + geom_point() +
 
 
 ############# Want to see what the % correct is in the total results tab for engineering model when obs are set to 125 and then for 5
-#levels(totalresults$severity)[1] <- 'Low'
-#levels(totalresults$severity)[2] <- 'High'
 
 outputtable = confusionMatrix(totalresults$severity,totalresults$GTseverity)
 outputtable

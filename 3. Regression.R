@@ -18,6 +18,16 @@ describe(dfReg)
 #create a column that has the sum of the absolute value of the xyz data
 dfReg$mag = sqrt( (dfReg$Force.X^ 2) + (dfReg$Force.Y ^ 2) + (dfReg$Force.Z ^ 2))
 
+#create a dataset of crashpoints for each test
+tapply(dfReg$mag, dfReg$TSTNO, max)
+
+result <- dfReg %>% group_by(TSTNO) %>% filter(mag == max(mag))
+
+chk = dfReg[is.element(dfReg, result),]
+
+crash.length <- sort(c(match(paste(dfReg$TSTNO, dfReg$Time), paste(result$TSTNO, result$Time)) + seq(from = 0, to = 50, by = 10)))
+
+
 dfReg = dfReg %>% group_by(TSTNO) %>% top_n(1, mag)
 dfReg$vehid = paste(dfReg$TSTNO,dfReg$VEHNO)
 dfReg = data.frame(dfReg[,c(1:8)], initialspeed=tstReg[match(dfReg$TSTNO, tstReg$TSTNO), 23])

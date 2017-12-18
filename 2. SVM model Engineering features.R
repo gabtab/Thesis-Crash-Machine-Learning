@@ -12,6 +12,12 @@ head(vehdatclSVM)
 vehdatclSVM = vehdatclSVM[,colSums(!is.na(vehdatclSVM))>=2300]
 vehdatclSVM = vehdatclSVM[complete.cases(vehdatclSVM),]
 describe(vehdatclSVM)
+
+
+
+
+
+##next section is how to create the SVM based on features available in the insurance industry
 ##need to use only features that will be available to insurance pre crash
 vehdatclSVM = vehdatclSVM[c(3,5,7,9,12,14,17,19,20,46,48,81)]
 vehdatclSVM[,c(1:6)] = lapply(vehdatclSVM[,c(1:6)],factor)
@@ -37,7 +43,7 @@ svm_final <- train(DamLev ~., data = validate, method = "svmLinear",
                    trControl=trctrl,
                    preProcess = c("center", "scale"),
                    tuneLength = 10)
-
+summary(svm_final)
 svm_pred = predict(svm_final, newdata = validate)
 confusionMatrix(svm_pred, validate$DamLev)
 
