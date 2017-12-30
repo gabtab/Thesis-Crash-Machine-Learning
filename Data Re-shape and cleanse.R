@@ -4,10 +4,10 @@ tstset <- sqlQuery(dbhandle, 'select * from dbo.tst')
 vehdat <- sqlQuery(dbhandle, 'select * from dbo.veh')
 instdat <- sqlQuery(dbhandle, 'select * from dbo.instr')
 
-sensorzero = sensorout[(sensorout$Force == 0),]
+#sensorzero = sensorout[(sensorout$Force == 0),]
 
 ##################START DATACLEANING ###########################################################################
-sensorout = sensorout[(!sensorout$Force == 0),]
+# = sensorout[(!sensorout$Force == 0),]
 tstsetSVM = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP')),]
 tstReg = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP','VTV','ITV')),]
 tstset = tstset[(tstset$` TSTCFN` %in% c('VTB','VTI','VTP')),]

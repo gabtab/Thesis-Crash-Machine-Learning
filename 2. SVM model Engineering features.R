@@ -1,6 +1,6 @@
 
 describe(vehdatclSVM)
-describe(tstsetSVM)
+describe(validate)
 
 vehdatclSVM = vehdatclSVM[vehdatclSVM$TSTNO %in% tstsetSVM$TSTNO,]
 validate = vehdatclSVM[(vehdatclSVM$TSTNO %in% dfmag$TSTNO),]
@@ -13,19 +13,33 @@ vehdatclSVM = vehdatclSVM[,colSums(!is.na(vehdatclSVM))>=2300]
 vehdatclSVM = vehdatclSVM[complete.cases(vehdatclSVM),]
 describe(vehdatclSVM)
 
-
-
-
-
-##next section is how to create the SVM based on features available in the insurance industry
-##need to use only features that will be available to insurance pre crash
-vehdatclSVM = vehdatclSVM[c(3,5,7,9,12,14,17,19,20,46,48,81)]
-vehdatclSVM[,c(1:6)] = lapply(vehdatclSVM[,c(1:6)],factor)
-unique(vehdat$` ENGINED`)
+  crashdatapoints= NULL
+###get all the x,y,z data from the crash into a dataframe
+for (i in dfmag$TSTNO){
+  
+  ind.dat = testdat[testdat$TSTNO == i ,]
+  ind.imp = which.max(ind.dat$mag)
+  f.imp <- ind.dat[ind.imp,]
+  results = datapoints(ind.imp,ind.dat$Time,ind.dat$Force.X, ind.dat$Force.Y, ind.dat$Force.Z)
+  results$TSTNO = i
+  
+  if (exists('crashdatapoints') == TRUE) {
+    crashdatapoints = rbind(crashdatapoints,results)
+  }  else{
+    crashdatapoints = results
+  } 
+}
+###reshape the data so they all follow each othe
+  
+# vehdatclSVM = vehdatclSVM[c(1,3,5,7,9,12,14,17,19,20,46,48,81)]
+ colnames(validate)
+ validate = validate[c(1,3,5,7,9,12,13,17,20,51,53,95)]
+ summary(crashdatapoints)
+alldata = merge(crashdatapoints, validate, by = 'TSTNO')
 set.seed(1001)
-intrain <- createDataPartition(y = vehdatclSVM$DamLev, p= 0.5, list = FALSE)
-training = vehdatclSVM[intrain,]
-testing <- vehdatclSVM[-intrain,]
+intrain <- createDataPartition(y = alldata$DamLev, p= 0.5, list = FALSE)
+training = alldata[intrain,]
+testing <- alldata[-intrain,]
 
 trctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3)
 set.seed(1234)

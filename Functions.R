@@ -156,4 +156,21 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   
 }
 
+####################feed in all the crashpoints into the SVM model #################
+datapoints = function(startpoint,Time,accelX ,accelY ,accelZ, TSTNO) {
 
+  crash.points <- sort(c(ind.imp + seq(from = 0, to = 50, by = 5)))
+  
+  # Get accelerometer data for crash window
+  crash.acc.x <- data.frame(t(accelX[c(crash.points)]))
+  crash.acc.y <- data.frame(t(accelY[c(crash.points)]))
+  colnames(crash.acc.y) <- gsub(x = colnames(crash.acc.y), pattern = "X", replacement = "Y") 
+  
+  crash.acc.z <- data.frame(t(accelZ[c(crash.points)]))
+  colnames(crash.acc.z) <- gsub(x = colnames(crash.acc.z), pattern = "X", replacement = "Z") 
+  
+  results <- cbind(crash.acc.x, crash.acc.y, crash.acc.z)
+  #colnames(results) <- c('crashx', 'crashy','crashz')
+  return(results)
+  
+}

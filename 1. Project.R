@@ -17,6 +17,7 @@ library(caret)
 library(glmnet)
 library(nnet)
 
+setwd("D:/College/Proposal 2/R/Thesis")
 source('Functions.R')
 source('Data Re-shape and cleanse.R')
 source('1.1 Engineering model.R')

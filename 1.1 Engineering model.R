@@ -8,12 +8,12 @@ outputtable1 = NULL
 for (i in dfmag$TSTNO){
   
   ##use the model to get the velocity and trajectory
-  DatVelTraj = VelTraj(testdat$Force.X[testdat$TSTNO == i ], testdat$Force.Y[testdat$TSTNO == i ],
-                       dfmag$initialspeed[dfmag$TSTNO == i],testdat$Time[testdat$TSTNO == i])
-  DatVelTraj = DatVelTraj[1:length(testdat$Force.X[testdat$TSTNO == i]),]
-  
-  testdat$vel[testdat$TSTNO == i] = DatVelTraj$vel
-  testdat$traj[testdat$TSTNO == i] = DatVelTraj$traj
+  # DatVelTraj = VelTraj(testdat$Force.X[testdat$TSTNO == i ], testdat$Force.Y[testdat$TSTNO == i ],
+  #                      dfmag$initialspeed[dfmag$TSTNO == i],testdat$Time[testdat$TSTNO == i])
+  # DatVelTraj = DatVelTraj[1:length(testdat$Force.X[testdat$TSTNO == i]),]
+  # 
+  # testdat$vel[testdat$TSTNO == i] = DatVelTraj$vel
+  # testdat$traj[testdat$TSTNO == i] = DatVelTraj$traj
   
   
   ind.dat = testdat[testdat$TSTNO == i ,]
