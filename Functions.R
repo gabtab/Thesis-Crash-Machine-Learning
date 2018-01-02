@@ -142,7 +142,7 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   # Where was the car hit from
   angle = DirectionCat(direction.post)
   
-  finalmag = sqrt(mom.x.crash ^ 2 + mom.y.crash ^ 2 + mom.z.crash ^2) / mass
+  finalmag = acc.mag(mom.x.crash, mom.y.crash, mom.z.crash) / mass
   
   if(finalmag > 2.2){
     severity = "High"
@@ -159,8 +159,8 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
 ####################feed in all the crashpoints into the SVM model #################
 datapoints = function(startpoint,Time,accelX ,accelY ,accelZ, TSTNO) {
 
-  crash.points <- sort(c(ind.imp + seq(from = 0, to = 50, by = 5)))
-  
+  crash.points <- ind.imp   ### for 1 datapoint
+ # crash.points <- sort(c(ind.imp + seq(from = 0, to = 50, by = 50))) for multiple datapoints
   # Get accelerometer data for crash window
   crash.acc.x <- data.frame(t(accelX[c(crash.points)]))
   crash.acc.y <- data.frame(t(accelY[c(crash.points)]))

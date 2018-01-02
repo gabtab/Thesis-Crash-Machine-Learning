@@ -1,39 +1,64 @@
 
-describe(vehdatclSVM)
-describe(tstsetSVM)
-
-vehdatclSVM = vehdatclSVM[vehdatclSVM$TSTNO %in% tstsetSVM$TSTNO,]
-validate = vehdatclSVM[(vehdatclSVM$TSTNO %in% dfmag$TSTNO),]
-vehdatclSVM = vehdatclSVM[!(vehdatclSVM$TSTNO %in% dfmag$TSTNO),]
-
-##remove the data being used in the engineering model
-summary(vehdatclSVM$DamLev)
-head(vehdatclSVM)
-vehdatclSVM = vehdatclSVM[,colSums(!is.na(vehdatclSVM))>=2300]
-vehdatclSVM = vehdatclSVM[complete.cases(vehdatclSVM),]
-describe(vehdatclSVM)
 ##need to use only features that will be available to insurance pre crash
-vehdatclSVM = vehdatclSVM[c(3,5,7,9,12,14,17,19,20,46,48,81)]
-vehdatclSVM[,c(1:6)] = lapply(vehdatclSVM[,c(1:6)],factor)
-unique(vehdat$` ENGINED`)
+clSVMall = vehdatclSVM[c(3,5,7,9,12,14,17,19,20,50,52,88)]
+#vehdatclSVMall[,c(1:6)] = lapply(vehdatclSVMall[,c(1:6)],factor)
+clSVMall[,2] = as.numeric(clSVMall$` MODEL`)
+
+intrain <- createDataPartition(y = clSVMall$DamLev, p= 0.5, list = FALSE)
+training = clSVMall[intrain,]
+testing <- clSVMall[-intrain,]
+
+####other option for selecting features is use a random forest method here #######################
+control <- rfeControl(functions=rfFuncs, method="cv", number=10)
+# run the RFE algorithm
+set.seed(1234)
+results <- rfe(clSVMall[,1:11], clSVMall[,12], sizes=c(1:11), rfeControl=control)
+# summarize the results
+print(results)
+# list the chosen features
+predictors(results)
+# plot the results
+plot(results, type=c("g", "o"))
+################################
+#NEED TO LOOK AT REDUCING THE PREDICTORS TO THE ONES FROM 2 LINES ABOVE " VEHSPD" " YEAR"   " BODY"   " ENGINE" " VEHWID" " VEHTWT"
+#DID AND IT DIDNT WORK
+########################################################################
+levels(training$DamLev)
 set.seed(1001)
-intrain <- createDataPartition(y = vehdatclSVM$DamLev, p= 0.5, list = FALSE)
-training = vehdatclSVM[intrain,]
-testing <- vehdatclSVM[-intrain,]
 
 trctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3)
-set.seed(1234)
 
 svm_Linear <- train(DamLev ~., data = training, method = "svmLinear",
                     trControl=trctrl,
                     preProcess = c("center", "scale"),
                     tuneLength = 10)
-svm_pred = predict(svm_Linear, newdata = testing)
-confusionMatrix(svm_pred, testing$DamLev)
 
-validate = validate[c(3,5,7,9,12,14,17,19,20,51,53,95)]
-validate = validate[complete.cases(validate),]
-svm_final <- train(DamLev ~., data = validate, method = "svmLinear",
+svm_pred = predict(svm_Linear, newdata = testing)
+
+confusionMatrix(svm_pred, testing$DamLev)
+summary(svm_Linear)
+#######next bit looks to test on the engineering dataset but this is incorrect as the data is included in training 
+validate1 = validate[c(3,5,7,9,12,14,17,20,21,51,53,95)]
+validate1 = na.omit(validate1)
+svm_predfinal = predict(svm_Linear, newdata = validate1)
+confusionMatrix(svm_predfinal, validate1$DamLev)
+
+
+nrow(svm_predfinal)
+ncol(validate)
+
+
+
+######################################################################################################################
+########################################################################################################################
+#####################################################################################################################
+#####################################################################################################################
+
+
+describe(validate1)
+validate1 = validate[c(3,5,7,9,12,14,17,20,21,51,53,95)]
+#validate1 = validate[complete.cases(validate),]
+svm_final <- train(DamLev ~., data = validate1, method = "svmLinear",
                     trControl=trctrl,
                     preProcess = c("center", "scale"),
                     tuneLength = 10)
@@ -44,8 +69,9 @@ confusionMatrix(svm_pred, validate$DamLev)
 ##tuning parameter C was set to 1, using grid see which is the best tuning parameter
 grid = expand.grid(C = c(0, 0.01,0.05,0.1,0.25,0.5,0.75,1,1.25,1.5,1.75,2,5))
 
+summary(training)
 set.seed(2345)
-svm_Linear_grid <- train(DamLev ~., data = training, method = "svmLinear",
+svm_Linear_grid <- train(DamLev ~ ., data = training, method = "svmLinear",
                     trControl=trctrl,
                     preProcess = c("center", "scale"),
                     tuneLength = 10,

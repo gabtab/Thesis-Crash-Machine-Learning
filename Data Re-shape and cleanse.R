@@ -78,7 +78,7 @@ sensorout = sensorout[sensorout$instid %in% instdat$instid,]
 sensorout = sensorout[sensorout$TSTNO %in% tstset$TSTNO,]
 
 sensoutReg = sensoutReg[sensoutReg$vehid %in% vehdatReg$vehid,]
-sensoutReg = sensoutReg[sensoutReg$instid %in% instdatReg$instid,] ###this line is the problem 
+sensoutReg = sensoutReg[sensoutReg$instid %in% instdatReg$instid,] 
 sensoutReg = sensoutReg[sensoutReg$TSTNO %in% tstReg$TSTNO,]
 
 unique(sensoutReg$TSTNO)
@@ -141,4 +141,13 @@ checktest = testdat %>% group_by(TSTNO) %>% summarise(no_rows = length(TSTNO))
 testdat = testdat[!(testdat$TSTNO %in% c(2663,6928,5408,6979,5405, 5408,6286,1804,5470) ),]
 dfmag = dfmag[!(dfmag$TSTNO %in% c(2663,6928,5408,6979, 5405,5408,6286,1804,5470)),]
 
+vehdatclSVM = vehdatclSVM[vehdatclSVM$TSTNO %in% tstsetSVM$TSTNO,]
+validate = vehdatclSVM[(vehdatclSVM$TSTNO %in% dfmag$TSTNO),]
 
+
+##remove the data being used in the engineering model
+summary(vehdatclSVM$DamLev)
+head(vehdatclSVM)
+vehdatclSVM = vehdatclSVM[,colSums(!is.na(vehdatclSVM))>=2300]
+vehdatclSVM = vehdatclSVM[complete.cases(vehdatclSVM),]
+#vehdatclSVMall = vehdatclSVM[!(vehdatclSVM$TSTNO %in% dfmag$TSTNO),]

@@ -54,6 +54,22 @@ ggplot(data = totalresults, aes(x = EngSev, y = initialspeed)) + geom_point() +
   theme_economist()
 
 
+###### mean graph requested by sean####################
+totalresults$EngSev[totalresults$EngSev %in% c(6,7,8,9,10)] ="7+"
+magmean = by(totalresults$maxmag,totalresults$EngSev,t.test)
+
+magmean <- matrix(c(unlist(magmean[[1]][5:4]),unlist(magmean[[2]][5:4]),unlist(magmean[[3]][5:4]),unlist(magmean[[4]][5:4]),
+                    unlist(magmean[[5]][5:4]),unlist(magmean[[6]][5:4])),nrow = 6, byrow = T)
+magmean <- data.frame(cbind(magmean, c('1','2','3','4','5','6+'))); colnames(magmean)=c('mean','lcl','ucl','Rating')
+magmean$mean = as.numeric(as.character(magmean$mean));magmean$lcl = as.numeric(as.character(magmean$lcl))
+magmean$ucl = as.numeric(as.character(magmean$ucl)) 
+ggplot(data = magmean, aes(x = Rating, y = mean)) + geom_point() + geom_errorbar(aes(ymin =lcl, ymax =ucl)) +
+  ylab("Magnitude")+ xlab('Engineering Severity') + labs(title = "Magnitude (m/s) versus Engineering Severity (Rating)")+
+  theme_economist()
+
+
+
+
 ############# Want to see what the % correct is in the total results tab for engineering model when obs are set to 125 and then for 5
 
 outputtable = confusionMatrix(totalresults$severity,totalresults$GTseverity)
