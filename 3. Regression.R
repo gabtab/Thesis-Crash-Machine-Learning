@@ -23,7 +23,7 @@ tapply(dfReg$mag, dfReg$TSTNO, max)
 
 result <- dfReg %>% group_by(TSTNO) %>% filter(mag == max(mag))
 
-chk = dfReg[is.element(dfReg, result),]
+#chk = dfReg[is.element(dfReg, result),]
 
 crash.length <- sort(c(match(paste(dfReg$TSTNO, dfReg$Time), paste(result$TSTNO, result$Time)) + seq(from = 0, to = 50, by = 10)))
 
@@ -34,8 +34,9 @@ dfReg = data.frame(dfReg[,c(1:8)], initialspeed=tstReg[match(dfReg$TSTNO, tstReg
 dfReg = data.frame(dfReg[,c(1:9)], vehwt=vehdatReg[match(dfReg$vehid, vehdatReg$vehid), 17])
 dfReg = data.frame(dfReg[,c(1:10)], vehlen =vehdatReg[match(dfReg$vehid, vehdatReg$vehid), 20])
 dfReg = data.frame(dfReg[,c(1:11)], vehwid =vehdatReg[match(dfReg$vehid, vehdatReg$vehid), 21])
-dfReg = data.frame(dfReg[,c(1:12)], impangle =tstReg[match(dfReg$TSTNO, tstReg$TSTNO), 24])
+dfReg = data.frame(dfReg[,c(1:12)], pdof =vehdatReg[match(dfReg$vehid, vehdatReg$vehid), 53])
 
+colnames(vehdatReg)
 ##instead of taking out the exact cases that were in the engineering model i need to randomise the data and then test on the same number as the 
 ## engineering model
 # dfVal = dfReg[(dfReg$TSTNO %in% dfmag$TSTNO),]
@@ -81,14 +82,14 @@ dfReg =  dfReg[complete.cases(dfReg), ]
 
 
 ##################Getting bad results so look at mulitnomial logistic regression #######
-dfReg$impangle = as.factor(dfReg$impangle)
+dfReg$pdof = as.factor(dfReg$pdof)
 
-dfReg$impangle2 <- relevel(dfReg$impangle, ref = "270")
-test <- multinom(impangle2 ~ Force.X  + Force.Y + Force.Z + mag + initialspeed + vehwt + vehlen + vehwid, data = dfReg)
+dfReg$pdof2 <- relevel(dfReg$pdof, ref = "270")
+test <- multinom(pdof2 ~ Force.X  + Force.Y + Force.Z + mag + initialspeed + vehwt + vehlen + vehwid, data = dfReg)
 summary(test)
 
-fit = multinom(as.factor(impangle) ~ 1, data = dfReg)
-fit1b = multinom(as.factor(impangle) ~Force.X + Force.Y + Force.Z + mag + initialspeed + vehwt + vehlen + vehwid, data = dfReg)
+fit = multinom(as.factor(pdof) ~ 1, data = dfReg)
+fit1b = multinom(as.factor(pdof) ~Force.X + Force.Y + Force.Z + mag + initialspeed + vehwt + vehlen + vehwid, data = dfReg)
 testmodel = step(fit, scope = list(lower = ~1, upper = ~Force.X  + Force.Y + Force.Z + mag + initialspeed + vehwt + vehlen + vehwid),
                  direction = "both", trace =1)
 summary(testmodel)
@@ -155,4 +156,4 @@ dfVal$RegResults = predict(testmodel, newdata = dfVal, se.fit = T)
 # update(testReg, .~. -Force.X:Force.Y:Force.Z:mag:initialspeed:vehwt:vehlen:vehwid)
 # drop1(testReg, test = 'F')
 # 
- summary(as.factor(dfVal$impangle))
+ summary(as.factor(dfVal$pdof))
