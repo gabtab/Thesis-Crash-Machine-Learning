@@ -46,8 +46,8 @@ ggplot(data = spdmean, aes(x = Rating, y = spdmean[,1]))+geom_errorbar(aes(ymin 
 #geom_hline(aes(yintercept = 40),colour="red", linetype="dashed", size = 1.5)
 
 ##because of the split in the data I will now categorise level 1-3 as low and 4-9 as high but due to other line i will do 2 levels
-vehdatclean$DamLev[vehdatclean$damrat %in% c(1,3)] = "Low"   ###based on the average crush in a t-test
-vehdatclean$DamLev[vehdatclean$damrat %in% c(2,4,5,6,7,8,9)] = "High"
+vehdatclean$DamLev[vehdatclean$damrat %in% c(1,2,3)] = "Low"   ###based on the average crush in a t-test
+vehdatclean$DamLev[vehdatclean$damrat %in% c(4,5,6,7,8,9)] = "High"
 vehdatclean$DamLev = as.factor(vehdatclean$DamLev)
 ###create SVM dataframe for SVM model
 vehdatclSVM = vehdatclean
@@ -116,7 +116,7 @@ unique(testdat$TSTNO)
 
 #create a column that has the sum of the absolute value of the xyz data
 testdat$absum = abs(testdat$Force.X) + abs(testdat$Force.Y)+ abs(testdat$Force.Z)
-testdat$mag = sqrt( (testdat$Force.X^ 2) + (testdat$Force.Y ^ 2) + (testdat$Force.Z ^ 2))
+testdat$mag = acc.mag(testdat$Force.X, testdat$Force.Y, testdat$Force.Z)
 
 dfmag = NULL
 dfmag = testdat %>% group_by(TSTNO) %>% top_n(1, mag)
@@ -150,4 +150,4 @@ summary(vehdatclSVM$DamLev)
 head(vehdatclSVM)
 vehdatclSVM = vehdatclSVM[,colSums(!is.na(vehdatclSVM))>=2300]
 vehdatclSVM = vehdatclSVM[complete.cases(vehdatclSVM),]
-#vehdatclSVMall = vehdatclSVM[!(vehdatclSVM$TSTNO %in% dfmag$TSTNO),]
+vehdatclSVMall = vehdatclSVM[!(vehdatclSVM$TSTNO %in% dfmag$TSTNO),]

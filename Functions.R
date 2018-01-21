@@ -23,33 +23,22 @@ timeit = function(time, n) {time[n+1]- time[n]}
 
 ##create a crash angle
 DirectionCat = function(direction.post){
-  if (direction.post >= 0 && direction.post < 53) {
-    impact_zone <- "SL"
-    crash_type <- "Side Impact"
-  } else if (direction.post >= 53 && direction.post <= 80) {
-    impact_zone <- "BL"
-    crash_type <- "Corner Impact"
-  } else if (direction.post > 80 && direction.post < 100) {
-    impact_zone <- "BC"
-    crash_type <- "Rear Impact"
-  } else if (direction.post >= 100 && direction.post <= 127) {
-    impact_zone <- "BR"
-    crash_type <- "Corner Impact"
-  } else if (direction.post > 127 && direction.post < 233) {
-    impact_zone <- "SR"
-    crash_type <- "Side Impact"
-  } else if (direction.post >= 233 && direction.post <= 260) {
-    impact_zone <- "FR"
-    crash_type <- "Corner Impact"
-  } else if (direction.post > 260 && direction.post < 280) {
+
+  if (direction.post >= 0 && direction.post < 30) {
     impact_zone <- "FC"
     crash_type <- "Front Impact"
-  } else if (direction.post >= 280 && direction.post <= 307) {
-    impact_zone <- "FL"
-    crash_type <- "Corner Impact"
-  } else if (direction.post > 307 && direction.post <= 360) {
+  } else if (direction.post >= 30 && direction.post <= 150) {
+    impact_zone <- "SR"
+    crash_type <- "Side Right"
+  } else if (direction.post > 150 && direction.post <= 210) {
+    impact_zone <- "BC"
+    crash_type <- "Rear Impact"
+  } else if (direction.post >= 210 && direction.post <= 300) {
     impact_zone <- "SL"
-    crash_type <- "Side Impact"
+    crash_type <- "Side Left"
+  } else if (direction.post > 300 && direction.post <= 360) {
+    impact_zone <- "FC"
+    crash_type <- "Front Impact"
   }
   angle <- data.frame(impact_zone,crash_type)
   colnames(angle) <- c('impact_zone', 'crash_type')
@@ -102,7 +91,7 @@ VelTraj = function(accelX, accely,initialspeed, Time)
 }
 
 ################# Calculate Magnitude of Acceleration #####################
-## easy example of why http://www.dummies.com/education/science/physics/calculating-net-force-and-acceleration/
+
 acc.mag <- function(accelx, accely, accelz) {
   sqrt(accelx ^ 2 + accely ^ 2 + accelz ^ 2)
 }
@@ -110,10 +99,11 @@ acc.mag <- function(accelx, accely, accelz) {
 ##################   Momentum Model   ##########################
 momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   gravity = 9.80665
+
   ## In order to get 10 observations the 2nd function needs to be used
-  #crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.0005 / timeit(Time,ind.imp)), by = 1)))
-  crash.points <- sort(c(ind.imp + seq(from = 0, to = 50, by = 1)))
-  
+  #crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.005 / timeit(Time,ind.imp)), by = 1)))
+  crash.points <- sort(c(ind.imp + seq(from = 0, to = 1, by = 1)))
+  #crash.points <- ind.imp
   # Get accelerometer data for crash window
   crash.acc.x <- gravity * accelX[c(crash.points)]
   crash.acc.y <- gravity * accelY[c(crash.points)]
@@ -133,6 +123,7 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   #calculate the direction of the momentum vector
   direction.post <- atan2(y = mom.x.crash, x = mom.y.crash)
   direction.post <- direction.post * 180 / pi
+  #direction.post = direction.post - 180
   ##################################################################
   ##this handles negative angles
   if (direction.post < 0) {
@@ -144,7 +135,7 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   
   finalmag = acc.mag(mom.x.crash, mom.y.crash, mom.z.crash) / mass
   
-  if(finalmag > 2.2){
+  if(finalmag > 2.5){
     severity = "High"
   }
   else{
@@ -157,10 +148,10 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
 }
 
 ####################feed in all the crashpoints into the SVM model #################
-datapoints = function(startpoint,Time,accelX ,accelY ,accelZ, TSTNO) {
+datapoints = function(datap, startpoint,Time,accelX ,accelY ,accelZ, TSTNO) {
 
-  crash.points <- ind.imp   ### for 1 datapoint
- # crash.points <- sort(c(ind.imp + seq(from = 0, to = 50, by = 50))) for multiple datapoints
+ # crash.points <- ind.imp   ### for 1 datapoint
+ crash.points <- sort(c(ind.imp + seq(from = 0, to = 50, by = datap))) #for multiple datapoints
   # Get accelerometer data for crash window
   crash.acc.x <- data.frame(t(accelX[c(crash.points)]))
   crash.acc.y <- data.frame(t(accelY[c(crash.points)]))
