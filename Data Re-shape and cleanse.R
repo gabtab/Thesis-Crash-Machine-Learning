@@ -4,6 +4,9 @@ tstset <- sqlQuery(dbhandle, 'select * from dbo.tst')
 vehdat <- sqlQuery(dbhandle, 'select * from dbo.veh')
 instdat <- sqlQuery(dbhandle, 'select * from dbo.instr')
 
+
+summary(instdat)
+
 #sensorzero = sensorout[(sensorout$Force == 0),]
 
 ##################START DATACLEANING ###########################################################################
@@ -93,13 +96,18 @@ summary(sensoutReg$AXIS)
 sensorout$AXIS = as.character(sensorout$AXIS)
 sensoutReg$AXIS = as.character(sensoutReg$AXIS)
 
-sensorout$AXIS[startsWith(sensorout$AXIS, "X")] = "X"
-sensorout$AXIS[startsWith(sensorout$AXIS, "Y")] = "Y"
-sensorout$AXIS[startsWith(sensorout$AXIS, "Z")] = "Z"
+sensorout$AXIS[startsWith(sensorout$AXIS, "XG")] = "X"
+sensorout$AXIS[startsWith(sensorout$AXIS, "YG")] = "Y"
+sensorout$AXIS[startsWith(sensorout$AXIS, "ZG")] = "Z"
 
-sensoutReg$AXIS[startsWith(sensoutReg$AXIS, "X")] = "X"
-sensoutReg$AXIS[startsWith(sensoutReg$AXIS, "Y")] = "Y"
-sensoutReg$AXIS[startsWith(sensoutReg$AXIS, "Z")] = "Z"
+subsetxyz = c('X','Y','Z')
+sensorout = sensorout[sensorout$AXIS %in% subsetxyz,]
+
+sensoutReg$AXIS[startsWith(sensoutReg$AXIS, "XG")] = "X"
+sensoutReg$AXIS[startsWith(sensoutReg$AXIS, "YG")] = "Y"
+sensoutReg$AXIS[startsWith(sensoutReg$AXIS, "ZZ")] = "Z"
+sensoutReg = sensoutReg[sensoutReg$AXIS %in% subsetxyz,]
+
 
 ###################################Data Re-Shaping##################################################################
 resh <- reshape(data = sensorout, timevar = "AXIS",
@@ -151,3 +159,4 @@ head(vehdatclSVM)
 vehdatclSVM = vehdatclSVM[,colSums(!is.na(vehdatclSVM))>=2300]
 vehdatclSVM = vehdatclSVM[complete.cases(vehdatclSVM),]
 vehdatclSVMall = vehdatclSVM[!(vehdatclSVM$TSTNO %in% dfmag$TSTNO),]
+

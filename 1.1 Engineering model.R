@@ -7,15 +7,6 @@ outputtable1 = NULL
 
 for (i in dfmag$TSTNO){
   
-  ##use the model to get the velocity and trajectory
-  # DatVelTraj = VelTraj(testdat$Force.X[testdat$TSTNO == i ], testdat$Force.Y[testdat$TSTNO == i ],
-  #                      dfmag$initialspeed[dfmag$TSTNO == i],testdat$Time[testdat$TSTNO == i])
-  # DatVelTraj = DatVelTraj[1:length(testdat$Force.X[testdat$TSTNO == i]),]
-  # 
-  # testdat$vel[testdat$TSTNO == i] = DatVelTraj$vel
-  # testdat$traj[testdat$TSTNO == i] = DatVelTraj$traj
-  
-  
   ind.dat = testdat[testdat$TSTNO == i ,]
   ind.imp = which.max(ind.dat$mag)
   f.imp <- ind.dat[ind.imp,]
@@ -43,7 +34,6 @@ for (i in dfmag$TSTNO){
 
 testdat1 = testdat[testdat$TSTNO == 7,]
 summary(as.factor(diff(testdat$Time)))
-?diff
 
 ####This is after talking to Sean -- need to get the relationship between the classificaiton and the magnitude
 ggplot(data = totalresults, aes(x = EngSev, y = crash_mag)) + geom_point() + 
@@ -109,7 +99,7 @@ ggplot(data = upmagmean, aes(x = Rating, y = mean)) + geom_point() + geom_errorb
   theme_economist()
 
 #################################Next check the angle of impact
-
+summary(as.factor(totalresults$pdof))
 outputtable = confusionMatrix(totalresults$impact_zone,totalresults$GTAngCat)
 
   summary(totalresults$GTAngCat)

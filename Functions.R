@@ -33,10 +33,10 @@ DirectionCat = function(direction.post){
   } else if (direction.post > 150 && direction.post <= 210) {
     impact_zone <- "BC"
     crash_type <- "Rear Impact"
-  } else if (direction.post >= 210 && direction.post <= 300) {
+  } else if (direction.post >= 210 && direction.post <= 330) {
     impact_zone <- "SL"
     crash_type <- "Side Left"
-  } else if (direction.post > 300 && direction.post <= 360) {
+  } else if (direction.post > 330 && direction.post <= 360) {
     impact_zone <- "FC"
     crash_type <- "Front Impact"
   }
@@ -45,7 +45,29 @@ DirectionCat = function(direction.post){
   return(angle)
 }
 
-
+##create a crash angle for momentum
+DirectionMom = function(direction.post){
+  
+  if (direction.post >= 0 && direction.post < 30) {
+    impact_zone <- "SL"
+    crash_type <- "Side Left"
+  } else if (direction.post >= 30 && direction.post <= 150) {
+    impact_zone <- "BC"
+    crash_type <- "Rear Impact"
+  } else if (direction.post > 150 && direction.post <= 210) {
+    impact_zone <- "SR"
+    crash_type <- "Side Left"
+  } else if (direction.post >= 210 && direction.post <= 330) {
+    impact_zone <- "FC"
+    crash_type <- "Front Centre"
+  } else if (direction.post > 330 && direction.post <= 360) {
+    impact_zone <- "SL"
+    crash_type <- "Side Left"
+  }
+  angle <- data.frame(impact_zone,crash_type)
+  colnames(angle) <- c('impact_zone', 'crash_type')
+  return(angle)
+}
 
 ##################velocity and trajectory of car##########################
 VelTraj = function(accelX, accely,initialspeed, Time) 
@@ -102,7 +124,7 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
 
   ## In order to get 10 observations the 2nd function needs to be used
   #crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.005 / timeit(Time,ind.imp)), by = 1)))
-  crash.points <- sort(c(ind.imp + seq(from = 0, to = 1, by = 1)))
+  crash.points <- sort(c(ind.imp + seq(from = 0, to = 50, by = 1)))
   #crash.points <- ind.imp
   # Get accelerometer data for crash window
   crash.acc.x <- gravity * accelX[c(crash.points)]
@@ -131,7 +153,7 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   } 
   
   # Where was the car hit from
-  angle = DirectionCat(direction.post)
+  angle = DirectionMom(direction.post)
   
   finalmag = acc.mag(mom.x.crash, mom.y.crash, mom.z.crash) / mass
   
