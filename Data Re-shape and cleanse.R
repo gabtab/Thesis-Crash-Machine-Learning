@@ -4,9 +4,31 @@ tstset <- sqlQuery(dbhandle, 'select * from dbo.tst')
 vehdat <- sqlQuery(dbhandle, 'select * from dbo.veh')
 instdat <- sqlQuery(dbhandle, 'select * from dbo.instr')
 
+summary(as.factor(tstset$` TSTCFND`))
+###smooth all of the sensor data to the power of 100
+#smooth = 100
+#sensorout$Force = stats::filter(sensorout$Force, rep(1 / smooth,smooth))
+sensorout = sensorout[sensorout$Time >=0, ]
 
-summary(instdat)
-
+###############CONVERT THE READ OUT DATA TO 180 HERTZ #################################
+# summary(as.factor(instdat$` DELT`))
+# smooth = 10
+# #smooth = instdat$` PREFIL`[instdat$TSTNO == 662]
+# hertzdat = testdat[testdat$TSTNO == 662,]
+# hertzdat = hertzdat[hertzdat$Time >=0, ]
+# 
+# hertzdat$filtermag <- stats::filter(hertzdat$mag, rep(1 / smooth, smooth))
+# hertzdat$filterx = stats::filter(hertzdat$Force.X, rep(1 / smooth, smooth))
+# hertzdat$mag = acc.mag(hertzdat$Force.X, hertzdat$Force.Y, hertzdat$Force.Z)
+# plot(hertzdat$Time, hertzdat$filterx, xlab = "Time", ylab = "G-force")
+# plot(hertzdat$Time, hertzdat$Force.X, xlab = "Time", ylab = "G-force")
+# plot(hertzdat$Time, hertzdat$filtermag, xlab = "Time", ylab = "filter data")
+# plot(hertzdat$Time, hertzdat$mag, xlab = "Time", ylab = "filter data")
+# 
+# instdat[instdat$TSTNO == 14,]
+# vehdat[vehdat$TSTNO == 14,]
+# summary(instdat)
+#####################################################################################
 #sensorzero = sensorout[(sensorout$Force == 0),]
 
 ##################START DATACLEANING ###########################################################################
@@ -105,7 +127,7 @@ sensorout = sensorout[sensorout$AXIS %in% subsetxyz,]
 
 sensoutReg$AXIS[startsWith(sensoutReg$AXIS, "XG")] = "X"
 sensoutReg$AXIS[startsWith(sensoutReg$AXIS, "YG")] = "Y"
-sensoutReg$AXIS[startsWith(sensoutReg$AXIS, "ZZ")] = "Z"
+sensoutReg$AXIS[startsWith(sensoutReg$AXIS, "ZG")] = "Z"
 sensoutReg = sensoutReg[sensoutReg$AXIS %in% subsetxyz,]
 
 

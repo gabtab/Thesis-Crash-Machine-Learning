@@ -64,19 +64,9 @@ ggplot(data = magmean, aes(x = Rating, y = mean)) + geom_point() + geom_errorbar
   theme_economist()
 
 
-upsampledat = upSample(totalresults, totalresults$severity)
-summary(upsampledat$severity)
 outputtable = confusionMatrix(totalresults$severity,totalresults$GTseverity)
+outputtable
 ############# Want to see what the % correct is in the total results tab for engineering model when obs are set to 125 and then for 5
-
-outputtable = confusionMatrix(totalresults$severity,totalresults$GTseverity)
-no
-outputtable1 = as.data.frame(t(data.frame(cbind(t(outputtable$byClass),t(outputtable$overall)))))
-names(outputtable1) = "Statistics"
-outputtable1$Statistics = round(outputtable1$Statistics, digits = 2)
-
-write.csv2(outputtable1, "D:/College/Proposal 2/5. Results/EngineeringConfusion")
-
 
 ####try up sampling because there is not enough highs
 
