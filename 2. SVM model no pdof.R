@@ -3,7 +3,7 @@
 clSVMall = vehdatclSVM[c(3,5,7,9,12,14,17,19,20,50,52,88)]
 #vehdatclSVMall[,c(1:6)] = lapply(vehdatclSVMall[,c(1:6)],factor)
 clSVMall[,2] = as.numeric(clSVMall$` MODEL`)
-#clSVMall = clSVMall[,-11]
+clSVMall = clSVMall[,-11]
 describe(clSVMall)
 
 intrain <- createDataPartition(y = clSVMall$DamLev, p= 0.5, list = FALSE)
@@ -15,11 +15,11 @@ trctrl = trainControl(method = "repeatedcv", number = 10, classProbs = T, repeat
 
 
 svm_Linear1 <- train(DamLev ~ ., data = training, method = "svmLinear",
-                    trControl=trctrl,
-                    metric = 'ROC',
-                    preProcess = c("center", "scale"),
-                    tuneLength = 10)
-  
+                     trControl=trctrl,
+                     metric = 'ROC',
+                     preProcess = c("center", "scale"),
+                     tuneLength = 10)
+
 svm_pred1 = predict(svm_Linear1, newdata = testing)
 svm_pred1 <- factor(svm_pred1, levels=c("Low", "High"), ordered=TRUE)
 testing$DamLev <- factor(testing$DamLev, levels=c("Low", "High"), ordered=TRUE)
@@ -34,7 +34,7 @@ mod1rox <- roc(testing$DamLev, svmprob1, predictor = svmprob1[, "High"])
 control <- rfeControl(functions=rfFuncs, method="cv", number=10)
 # run the RFE algorithm
 set.seed(1234)
-results <- rfe(clSVMall[,1:11], clSVMall[,12], sizes=c(1:11), rfeControl=control)
+results <- rfe(clSVMall[,1:10], clSVMall[,11], sizes=c(1:10), rfeControl=control)
 # summarize the results
 print(results)
 # list the chosen features
@@ -59,9 +59,9 @@ trctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, classProb
 
 
 svm_Linear2 <- train(y ~ ., data = trainX, method = "svmLinear",
-                    trControl=trctrl,
-                    preProcess = c("center", "scale"),
-                    tuneLength = 10)
+                     trControl=trctrl,
+                     preProcess = c("center", "scale"),
+                     tuneLength = 10)
 svm_Linear2$coefnames
 svm_pred2 = predict(svm_Linear2, newdata = testX)
 mod2 = confusionMatrix(svm_pred2, testX$ytest)
@@ -86,10 +86,10 @@ grid = expand.grid(C = c(0, 0.01,0.05,0.1,0.25,0.5,0.75,1,1.25,1.5,1.75,2,5))
 summary(training)
 set.seed(2345)
 svm_Linear_grid3 <- train(DamLev ~ ., data = training, method = "svmLinear",
-                    trControl=trctrl,
-                    preProcess = c("center", "scale"),
-                    tuneLength = 10,
-                    tuneGrid = grid)
+                          trControl=trctrl,
+                          preProcess = c("center", "scale"),
+                          tuneLength = 10,
+                          tuneGrid = grid)
 plot(svm_Linear_grid3)
 
 test_pred_grid3 = predict(svm_Linear_grid3, newdata = testing)
@@ -106,9 +106,9 @@ mod3rox <- roc(testing$DamLev, svmprob3, predictor = svmprob3[, "High"])
 ####check to see if a nonlinear model is more accurate
 set.seed(3456)
 svm_radial4 = train(DamLev ~., data = training, method = "svmRadial",
-                   trControl=trctrl,
-                   preProcess = c("center", "scale"),
-                   tuneLength = 10)
+                    trControl=trctrl,
+                    preProcess = c("center", "scale"),
+                    tuneLength = 10)
 plot(svm_radial)
 
 test_pred_Radial4 <- predict(svm_radial4, newdata = testing)
@@ -130,10 +130,10 @@ mod4rox <- roc(testing$DamLev, svmprob4, predictor = svmprob4[, "High"])
 grid_radial = expand.grid(sigma = c(0,0.01, 0.02, 0.025, 0.03, 0.04,0.05, 0.06, 0.07,0.08, 0.09, 0.1, 0.25, 0.5, 0.75,0.9),
                           C = c(0, 0.01,0.05,0.1,0.25,0.5,0.75,1,1.25,1.5,1.75,2,5))
 svm_Radial_Grid5 <- train(DamLev ~., data = training, method = "svmRadial",
-                         trControl=trctrl,
-                         preProcess = c("center", "scale"),
-                         tuneGrid = grid_radial,
-                         tuneLength = 10)
+                          trControl=trctrl,
+                          preProcess = c("center", "scale"),
+                          tuneGrid = grid_radial,
+                          tuneLength = 10)
 
 test_pred_Radial_Grid5 <- predict(svm_Radial_Grid5, newdata = testing)
 mod5 = confusionMatrix(test_pred_Radial_Grid5, testing$DamLev )
@@ -151,9 +151,9 @@ mod5rox <- roc(testing$DamLev, svmprob5, predictor = svmprob5[, "High"])
 
 set.seed(3456)
 svm_radial6 = train(y ~., data = trainX, method = "svmRadial",
-                   trControl=trctrl,
-                   preProcess = c("center", "scale"),
-                   tuneLength = 10)
+                    trControl=trctrl,
+                    preProcess = c("center", "scale"),
+                    tuneLength = 10)
 plot(svm_radial6)
 
 test_pred_Radial6 <- predict(svm_radial6, newdata = testX)
@@ -162,10 +162,10 @@ confusionMatrix(test_pred_Radial6, testX$ytest)
 grid_radial = expand.grid(sigma = c(0,0.01, 0.02, 0.025, 0.03, 0.04,0.05, 0.06, 0.07,0.08, 0.09, 0.1, 0.25, 0.5, 0.75,0.9),
                           C = c(0, 0.01,0.05,0.1,0.25,0.5,0.75,1,1.25,1.5,1.75,2,5))
 svm_Radial_Grid6 <- train(y ~., data = trainX, method = "svmRadial",
-                         trControl=trctrl,
-                         preProcess = c("center", "scale"),
-                         tuneGrid = grid_radial,
-                         tuneLength = 10)
+                          trControl=trctrl,
+                          preProcess = c("center", "scale"),
+                          tuneGrid = grid_radial,
+                          tuneLength = 10)
 
 test_pred_Radial_Grid6 <- predict(svm_Radial_Grid6, newdata = testX)
 mod6 = confusionMatrix(test_pred_Radial_Grid6, testX$ytest )
@@ -185,10 +185,10 @@ mod6rox <- roc(testing$DamLev, svmprob6, predictor = svmprob6[, "High"])
 
 mod1 
 svmmod1 = data.frame(matrix(unlist(c("SVM Linear not Momentum Data", round(as.numeric(mod1$overall['Accuracy']),digits =2), 
-                                            round(as.numeric(mod1$overall['AccuracyLower']),digits = 2),
-                                            round(as.numeric(mod1$overall['AccuracyUpper']),digits = 2),
-                                            round(as.numeric(mod1$byClass['Sensitivity']),digits = 2), 
-                                            round(as.numeric(mod1$byClass['Specificity']),digits = 2))),nrow =1 , byrow =T))
+                                     round(as.numeric(mod1$overall['AccuracyLower']),digits = 2),
+                                     round(as.numeric(mod1$overall['AccuracyUpper']),digits = 2),
+                                     round(as.numeric(mod1$byClass['Sensitivity']),digits = 2), 
+                                     round(as.numeric(mod1$byClass['Specificity']),digits = 2))),nrow =1 , byrow =T))
 colnames(svmmod1)   = c("model", "Acc","Lwr","Upr","Sen","Spc")  
 mod2 
 svmmod2 = data.frame(matrix(unlist(c("SVM Linear not Momentum Data less features", round(as.numeric(mod2$overall['Accuracy']),digits =2), 
@@ -236,7 +236,7 @@ data_long <- gather(svmresults, metrics, measurement, Acc:Spc, factor_key=TRUE)
 
 ####
 chartin = data_long[data_long$metrics %in% c("Acc","Sen","Spc"),]
-  chartlong <- chartin %>% arrange(model) %>%
+chartlong <- chartin %>% arrange(model) %>%
   group_by(model) %>% 
   mutate(linecol = rank(model, ties.method = "first"))
 
@@ -248,19 +248,19 @@ chartlong <- chartlong %>% arrange(model) %>%
 chartin = chartlong[chartlong$metrics %in% c("Acc","Sen","Spc"),]
 
 
-  ggplot(chartlong, aes(x =chartlong$metrics, y =chartlong$measurement,group = chartlong$model)) + 
-    geom_line(aes(color = chartlong$model), size = 1) + theme_economist()+ scale_colour_hue(name="model", l=50) +
-    scale_linetype_discrete(name="linwid") +
-    xlab("Statistics") + ylab("% results") + # Set axis labels
-    ggtitle("SVM model comparison") 
+ggplot(chartlong, aes(x =chartlong$metrics, y =chartlong$measurement,group = chartlong$model)) + 
+  geom_line(aes(color = chartlong$model), size = 1) + theme_economist()+ scale_colour_hue(name="model", l=50) +
+  scale_linetype_discrete(name="linwid") +
+  xlab("Statistics") + ylab("% results") + # Set axis labels
+  ggtitle("SVM model comparison") 
 
-  g = plot.roc(mod1rox) + theme_economist()
-  plot.roc(mod2rox, add = TRUE, col = 'Blue')
-  plot.roc(mod3rox, add = TRUE, col = 'steel blue')
-  plot.roc(mod4rox, add = TRUE, col = 'yellow')
-  plot.roc(mod5rox, add = TRUE, col = 'red')
-  plot.roc(mod6rox, add = TRUE, col = 'purple')
- 
+g = plot.roc(mod1rox) + theme_economist()
+plot.roc(mod2rox, add = TRUE, col = 'Blue')
+plot.roc(mod3rox, add = TRUE, col = 'steel blue')
+plot.roc(mod4rox, add = TRUE, col = 'yellow')
+plot.roc(mod5rox, add = TRUE, col = 'red')
+plot.roc(mod6rox, add = TRUE, col = 'purple')
+
 ###look at adding the below AUC to the report   
 mod1rox  
 mod2rox  
@@ -271,7 +271,7 @@ mod6rox
 
 ls()
 keep(c(mod1rox,mod2rox,mod3rox,mod4rox, mod5rox, mod6rox ))
-  
+
 #   sens_spec1 <- data.frame(spec=rev(mod1roc$specificities),
 #                           sens=rev(mod1roc$sensitivities))
 #   sens_spec2 <- data.frame(spec=rev(mod2roc$specificities),

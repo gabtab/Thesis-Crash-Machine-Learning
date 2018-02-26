@@ -39,7 +39,9 @@ DirectionCat = function(direction.post){
   } else if (direction.post > 330 && direction.post <= 360) {
     impact_zone <- "FC"
     crash_type <- "Front Impact"
-  }
+  } else
+  {impact_zone <- "ERROR"
+  crash_type <- "ERROR"}
   angle <- data.frame(impact_zone,crash_type)
   colnames(angle) <- c('impact_zone', 'crash_type')
   return(angle)
@@ -63,7 +65,9 @@ DirectionMom = function(direction.post){
   } else if (direction.post > 330 && direction.post <= 360) {
     impact_zone <- "SL"
     crash_type <- "Side Left"
-  }
+  } else
+  {impact_zone <- "ERROR"
+  crash_type <- "ERROR"}
   angle <- data.frame(impact_zone,crash_type)
   colnames(angle) <- c('impact_zone', 'crash_type')
   return(angle)
@@ -119,14 +123,12 @@ acc.mag <- function(accelx, accely, accelz) {
 }
 
 ##################   Momentum Model   ##########################
-momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
+  momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   gravity = 9.80665
 
   ## In order to get 10 observations the 2nd function needs to be used
   #crash.points <- sort(c(ind.imp + seq(from = 0, to = floor(0.005 / timeit(Time,ind.imp)), by = 1)))
   crash.points <- sort(c(ind.imp + seq(from = 0, to = 50, by = 1)))
-  #crash.points <- ind.imp
-  # Get accelerometer data for crash window
   crash.acc.x <- gravity * accelX[c(crash.points)]
   crash.acc.y <- gravity * accelY[c(crash.points)]
   crash.acc.z <- gravity * accelZ[c(crash.points)]
@@ -157,7 +159,7 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
   
   finalmag = acc.mag(mom.x.crash, mom.y.crash, mom.z.crash) / mass
   
-  if(finalmag > 2.5){
+  if(finalmag > 0.89){
     severity = "High"
   }
   else{
@@ -170,16 +172,21 @@ momentum = function(ind.imp,Time,accelX ,accelY ,accelZ ,mass,mag) {
 }
 
 ####################feed in all the crashpoints into the SVM model #################
-datapoints = function(datap, startpoint,Time,accelX ,accelY ,accelZ, TSTNO) {
+datapoints = function(datap,n, startpoint,Time,accelX ,accelY ,accelZ, TSTNO) {
 
  # crash.points <- ind.imp   ### for 1 datapoint
- crash.points <- sort(c(ind.imp + seq(from = 0, to = 50, by = datap))) #for multiple datapoints
+  #crash.points <- sort(c(ind.imp + seq(from = 0, to = 50, by = datap))) #for multiple datapoints
   # Get accelerometer data for crash window
-  crash.acc.x <- data.frame(t(accelX[c(crash.points)]))
-  crash.acc.y <- data.frame(t(accelY[c(crash.points)]))
+  crash.pointsx = decimate((accelX[ind.imp- n] + seq(from = 0, to = n*2, by = 1)), datap, n, 'fir')
+  crash.pointsy = decimate((accelY[ind.imp- n] + seq(from = 0, to = n*2, by = 1)), datap, n, 'fir')
+  crash.pointsz = decimate((accelZ[ind.imp - n] + seq(from = 0, to = n*2, by = 1)), datap, n, 'fir')
+
+ 
+  crash.acc.x <- data.frame(t(crash.pointsx))
+  crash.acc.y <- data.frame(t(crash.pointsy))
   colnames(crash.acc.y) <- gsub(x = colnames(crash.acc.y), pattern = "X", replacement = "Y") 
   
-  crash.acc.z <- data.frame(t(accelZ[c(crash.points)]))
+  crash.acc.z <- data.frame(t(crash.pointsz))
   colnames(crash.acc.z) <- gsub(x = colnames(crash.acc.z), pattern = "X", replacement = "Z") 
   
   results <- cbind(crash.acc.x, crash.acc.y, crash.acc.z)
@@ -187,3 +194,4 @@ datapoints = function(datap, startpoint,Time,accelX ,accelY ,accelZ, TSTNO) {
   return(results)
   
 }
+
